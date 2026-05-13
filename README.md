@@ -18,3 +18,48 @@
 - Firebase Authentication
 - Cloud Firestore
 - `tennis-matchup-app` API
+
+## Development
+
+```powershell
+npm install
+npm run dev
+```
+
+ローカルURL:
+
+```txt
+http://localhost:3000
+```
+
+検証:
+
+```powershell
+npm run lint
+npm run build
+```
+
+## Firebase Rules
+
+メンバー登録はローカル画面からでも Cloud Firestore へ保存します。
+Firebase Console または Firebase CLI で `firestore.rules` を `tennis-organizing-app` に反映してください。
+
+Firebase CLI を使う場合:
+
+```powershell
+firebase login
+firebase use tennis-organizing-app
+firebase deploy --only firestore:rules
+```
+
+## Implemented Scope
+
+- Next.js App Router の初期構成
+- Firebase Client SDK 初期化
+- メール/パスワード認証
+- 新規ID登録後にログイン画面へ戻るパスワード設定フロー
+- Guestログイン
+- `tennis-matchup-app` に近い条件入力型ホーム画面
+- ホーム画面からのメンバー登録画面遷移
+- Firestore `users/{uid}/members/{memberId}` へのメンバー登録、編集、非表示
+- 登録順 / アイウエオ順の表示切替
