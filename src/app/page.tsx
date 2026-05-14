@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import packageJson from "../../package.json";
 import {
   ArrowLeft,
   Eye,
@@ -33,6 +34,9 @@ import { useMatchupPdfExport } from "@/hooks/useMatchupPdfExport";
 type MatchupMode = "standard" | "sameGenderPriority" | "mixedDoublesPriority";
 type Screen = "login" | "passwordSetup" | "home" | "memberManagement";
 type SortMode = "registered" | "kana";
+
+const APP_COPYRIGHT_YEAR = 2026;
+const APP_VERSION = packageJson.version;
 type MatchupParticipant = {
   id: string;
   name: string;
@@ -686,6 +690,9 @@ export default function Home() {
             sortMode={sortMode}
           />
         )}
+        <footer className="app-footer">
+          &copy; {APP_COPYRIGHT_YEAR} Bamboosato&nbsp; v{APP_VERSION}
+        </footer>
       </div>
     </main>
   );
