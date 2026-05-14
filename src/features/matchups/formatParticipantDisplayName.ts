@@ -1,8 +1,8 @@
 export type ParticipantGender = "female" | "male";
 
 const GENDER_MARKS: Record<ParticipantGender, string> = {
-  female: "❤",
-  male: "♠",
+  female: "♀",
+  male: "♂",
 };
 
 export function formatParticipantDisplayName(participant: { name: string; gender?: ParticipantGender }) {
