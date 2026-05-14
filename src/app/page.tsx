@@ -4,6 +4,8 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import {
   ArrowLeft,
+  Eye,
+  EyeOff,
   FileDown,
   Home as HomeIcon,
   LogIn,
@@ -720,18 +722,13 @@ function LoginPanel(props: {
               value={props.email}
             />
           </div>
-          <div className="field">
-            <label htmlFor="password">パスワード</label>
-            <input
-              autoComplete="current-password"
-              id="password"
-              minLength={6}
-              onChange={(event) => props.onPasswordChange(event.target.value)}
-              required
-              type="password"
-              value={props.password}
-            />
-          </div>
+          <PasswordField
+            autoComplete="current-password"
+            id="password"
+            label="パスワード"
+            onChange={props.onPasswordChange}
+            value={props.password}
+          />
           {props.authNotice ? <p className="status-message">{props.authNotice}</p> : null}
           {props.authError ? <p className="error-message">{props.authError}</p> : null}
           <div className="actions">
@@ -753,6 +750,44 @@ function LoginPanel(props: {
         </form>
       </div>
     </section>
+  );
+}
+
+function PasswordField(props: {
+  autoComplete: string;
+  id: string;
+  label: string;
+  onChange: (value: string) => void;
+  value: string;
+}) {
+  const [isVisible, setIsVisible] = useState(false);
+  const visibilityLabel = isVisible ? `${props.label}を非表示にする` : `${props.label}を表示する`;
+
+  return (
+    <div className="field">
+      <label htmlFor={props.id}>{props.label}</label>
+      <div className="password-input-wrap">
+        <input
+          autoComplete={props.autoComplete}
+          id={props.id}
+          minLength={6}
+          onChange={(event) => props.onChange(event.target.value)}
+          required
+          type={isVisible ? "text" : "password"}
+          value={props.value}
+        />
+        <button
+          aria-label={visibilityLabel}
+          aria-pressed={isVisible}
+          className="password-visibility-button"
+          title={visibilityLabel}
+          type="button"
+          onClick={() => setIsVisible((current) => !current)}
+        >
+          {isVisible ? <EyeOff size={20} aria-hidden="true" /> : <Eye size={20} aria-hidden="true" />}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -793,30 +828,20 @@ function PasswordSetupPanel(props: {
               value={props.email}
             />
           </div>
-          <div className="field">
-            <label htmlFor="setup-password">パスワード</label>
-            <input
-              autoComplete="new-password"
-              id="setup-password"
-              minLength={6}
-              onChange={(event) => props.onPasswordChange(event.target.value)}
-              required
-              type="password"
-              value={props.password}
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="setup-password-confirmation">パスワード確認</label>
-            <input
-              autoComplete="new-password"
-              id="setup-password-confirmation"
-              minLength={6}
-              onChange={(event) => props.onPasswordConfirmationChange(event.target.value)}
-              required
-              type="password"
-              value={props.passwordConfirmation}
-            />
-          </div>
+          <PasswordField
+            autoComplete="new-password"
+            id="setup-password"
+            label="パスワード"
+            onChange={props.onPasswordChange}
+            value={props.password}
+          />
+          <PasswordField
+            autoComplete="new-password"
+            id="setup-password-confirmation"
+            label="パスワード確認"
+            onChange={props.onPasswordConfirmationChange}
+            value={props.passwordConfirmation}
+          />
           {props.authError ? <p className="error-message">{props.authError}</p> : null}
           <div className="actions">
             <button className="button button-primary" type="submit">

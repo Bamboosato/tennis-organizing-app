@@ -251,6 +251,41 @@ h2 {
   resize: vertical;
 }
 
+.password-input-wrap {
+  position: relative;
+}
+
+.password-input-wrap input {
+  padding-right: 52px;
+}
+
+.password-visibility-button {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  min-height: 36px;
+  height: 36px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--primary-dark);
+  cursor: pointer;
+}
+
+.password-visibility-button:hover,
+.password-visibility-button[aria-pressed="true"] {
+  background: var(--primary-soft);
+}
+
+.password-visibility-button:focus-visible {
+  outline-offset: -1px;
+}
+
 .inline-fields {
   display: grid;
   grid-template-columns: 1fr 1fr;
