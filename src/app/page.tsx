@@ -575,8 +575,8 @@ export default function Home() {
             </div>
             <div>
               <p className="eyebrow">tennis-organizing-app</p>
-              <h1>テニスサークル運営サポート</h1>
-              <p className="brand-subtitle">(メンバー登録＆対戦表作成)</p>
+              <h1 className="brand-title">テニスサークル メンバー登録＆対戦表作成をサポートします！</h1>
+              <p className="brand-subtitle">(現状はダブルスに限ります)</p>
             </div>
           </div>
           {user ? (
@@ -670,7 +670,7 @@ export default function Home() {
             onMemberSelectionOpen={openMemberSelection}
             onMatchupModeChange={setMatchupMode}
             onMatchupCreate={handleCreateMatchup}
-            onPdfCreate={exportPdf}
+            onPdfCreate={(result, options) => exportPdf(result, options)}
             onRoundCountChange={setRoundCount}
             onSelectedMembersClear={clearDraftMemberSelection}
             onSelectedMembersSelectAll={selectAllDraftMembers}
@@ -861,7 +861,7 @@ function HomeScreen(props: {
   onMemberSelectionOpen: () => void;
   onMatchupModeChange: (value: MatchupMode) => void;
   onMatchupCreate: () => void;
-  onPdfCreate: (result: MatchupResult) => Promise<void>;
+  onPdfCreate: (result: MatchupResult, options?: { isGuest?: boolean }) => Promise<void>;
   onRoundCountChange: (value: string) => void;
   onSelectedMembersClear: () => void;
   onSelectedMembersSelectAll: () => void;
@@ -918,7 +918,7 @@ function HomeScreen(props: {
       <section className="home-hero">
         <div>
           <p className="section-kicker">Tennis Organizing App</p>
-          <p className="home-hero-copy">登録したメンバーを選択して、対戦表を作成します。</p>
+          <p className="home-hero-copy">登録したメンバーを選択して、対戦表を作成します。Guestでは連番表示の対戦表になります</p>
         </div>
         <div className={`hero-actions ${props.isGuest ? "hero-actions-guest" : ""}`}>
           {!props.isGuest ? (
@@ -940,7 +940,6 @@ function HomeScreen(props: {
               メンバー登録
             </button>
           </span>
-          {props.isGuest ? <p className="button-note">Guestではメンバー登録を利用できません。</p> : null}
         </div>
       </section>
 
@@ -1149,7 +1148,7 @@ function CourtReductionDialog(props: {
 function MatchupResultPanel(props: {
   isExportingPdf: boolean;
   isGuest: boolean;
-  onPdfCreate: (result: MatchupResult) => Promise<void>;
+  onPdfCreate: (result: MatchupResult, options?: { isGuest?: boolean }) => Promise<void>;
   pdfErrorMessage: string | null;
   result: MatchupResult;
 }) {
@@ -1176,18 +1175,16 @@ function MatchupResultPanel(props: {
           <h2>{eventName}</h2>
         </div>
         <div className="result-actions">
-          {!props.isGuest ? (
-            <button
-              className="button button-secondary"
-              disabled={props.isExportingPdf}
-              title="現在の対戦表をPDFファイルとして出力します。"
-              type="button"
-              onClick={() => void props.onPdfCreate(props.result)}
-            >
-              <FileDown size={18} />
-              {props.isExportingPdf ? "PDF出力中..." : "PDF作成"}
-            </button>
-          ) : null}
+          <button
+            className="button button-secondary"
+            disabled={props.isExportingPdf}
+            title="現在の対戦表をPDFファイルとして出力します。"
+            type="button"
+            onClick={() => void props.onPdfCreate(props.result, { isGuest: props.isGuest })}
+          >
+            <FileDown size={18} />
+            {props.isExportingPdf ? "PDF出力中..." : "PDF作成"}
+          </button>
           <div className="seed-pill">seed {props.result.seed}</div>
         </div>
       </div>
@@ -1559,10 +1556,14 @@ function buildGuestParticipants(femaleCount: number, maleCount: number): Matchup
   const totalCount = femaleCount + maleCount;
 
   for (let index = 0; index < totalCount; index += 1) {
+    const gender = index < femaleCount ? "female" : "male";
+    const displayNumber = String(index + 1).padStart(2, "0");
+    const displayName = `${displayNumber}${gender === "female" ? "F" : "M"}`;
+
     participants.push({
-      id: `guest-${index + 1}`,
-      name: `${index + 1}`,
-      gender: index < femaleCount ? "female" : "male",
+      id: `guest-${displayNumber}`,
+      name: displayName,
+      gender,
     });
   }
 
