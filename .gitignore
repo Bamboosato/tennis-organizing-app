@@ -6,6 +6,7 @@ node_modules/
 out/
 build/
 tsconfig.tsbuildinfo
+.vercel/
 
 # test and coverage
 coverage/
