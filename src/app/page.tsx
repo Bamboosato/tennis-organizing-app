@@ -27,6 +27,7 @@ import {
   type User,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase/client";
+import { formatParticipantDisplayName } from "@/features/matchups/formatParticipantDisplayName";
 import { addMember, deactivateMember, subscribeMembers, updateMember } from "@/features/members/memberRepository";
 import { emptyMemberForm, type Member, type MemberFormInput } from "@/features/members/model";
 import { useMatchupPdfExport } from "@/hooks/useMatchupPdfExport";
@@ -1191,7 +1192,13 @@ function MatchupResultPanel(props: {
   const eventName = props.result.conditions.eventName?.trim() || "対戦表";
 
   function playerName(playerId: string) {
-    return participantsById.get(playerId)?.name || playerId;
+    const participant = participantsById.get(playerId);
+
+    if (!participant) {
+      return playerId;
+    }
+
+    return props.isGuest ? participant.name : formatParticipantDisplayName(participant);
   }
 
   function pairLabel(pair?: MatchupPair | null) {
