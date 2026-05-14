@@ -62,7 +62,7 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json(upstreamBody);
+    return NextResponse.json(restoreParticipantGenders(upstreamBody, validation.value.participants));
   } catch {
     return errorResponse("MATCHUP_API_UNREACHABLE", "対戦表APIに接続できませんでした。", 502);
   }
@@ -133,6 +133,50 @@ function validateGenerateRequest(body: unknown): { ok: true; value: GenerateRequ
       participants: normalizedParticipants,
       courtCount,
       roundCount,
+    },
+  };
+}
+
+function restoreParticipantGenders(responseBody: unknown, requestedParticipants: ParticipantInput[]) {
+  if (!isRecord(responseBody) || !isRecord(responseBody.data) || !isRecord(responseBody.data.conditions)) {
+    return responseBody;
+  }
+
+  const participants = responseBody.data.conditions.participants;
+
+  if (!Array.isArray(participants)) {
+    return responseBody;
+  }
+
+  const genderById = new Map(
+    requestedParticipants
+      .filter((participant): participant is ParticipantInput & { gender: "female" | "male" } => Boolean(participant.gender))
+      .map((participant) => [participant.id, participant.gender]),
+  );
+
+  return {
+    ...responseBody,
+    data: {
+      ...responseBody.data,
+      conditions: {
+        ...responseBody.data.conditions,
+        participants: participants.map((participant) => {
+          if (!isRecord(participant) || typeof participant.id !== "string") {
+            return participant;
+          }
+
+          const gender = genderById.get(participant.id);
+
+          if (!gender || participant.gender === "female" || participant.gender === "male") {
+            return participant;
+          }
+
+          return {
+            ...participant,
+            gender,
+          };
+        }),
+      },
     },
   };
 }
