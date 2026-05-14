@@ -907,7 +907,10 @@ function HomeScreen(props: {
   const guestFemaleDisplayCount = toDisplayCount(props.guestFemaleCount);
   const guestMaleDisplayCount = toDisplayCount(props.guestMaleCount);
   const guestParticipantCount = guestFemaleDisplayCount + guestMaleDisplayCount;
-  const participantLabel = props.isGuest ? `${guestParticipantCount}人` : `${props.selectedMemberIds.length}人`;
+  const guestNumberingBreakdown = formatGuestNumberingBreakdown(guestFemaleDisplayCount, guestMaleDisplayCount);
+  const participantLabel = props.isGuest
+    ? `${guestParticipantCount}人${guestNumberingBreakdown ? `（${guestNumberingBreakdown}）` : ""}`
+    : `${props.selectedMemberIds.length}人`;
   const canSelectMembers = props.isGuest || props.activeMemberCount > 0;
   const participantCount = props.isGuest
     ? guestParticipantCount
@@ -1593,6 +1596,24 @@ function buildGuestParticipants(femaleCount: number, maleCount: number): Matchup
   }
 
   return participants;
+}
+
+function formatGuestNumberingBreakdown(femaleCount: number, maleCount: number) {
+  const ranges: string[] = [];
+
+  if (femaleCount > 0) {
+    ranges.push(`${formatNumberRange(1, femaleCount)}：女性`);
+  }
+
+  if (maleCount > 0) {
+    ranges.push(`${formatNumberRange(femaleCount + 1, femaleCount + maleCount)}：男性`);
+  }
+
+  return ranges.join("、");
+}
+
+function formatNumberRange(start: number, end: number) {
+  return start === end ? `${start}` : `${start}-${end}`;
 }
 
 function toUsableCourtCount(participantCount: number, requestedCourtCount: number | null) {
