@@ -36,8 +36,8 @@ describe("buildPdfDocumentModel", () => {
     const model = buildPdfDocumentModel(result);
     const court = model.pages[0].rounds[0].courtRows[0][0];
 
-    expect(court?.pairAPlayers).toEqual(["佐藤♀", "鈴木♂"]);
-    expect(court?.pairBPlayers).toEqual(["高橋♀", "田中♂"]);
-    expect(model.pages[0].rounds[0].restCell).toBe("中村♀");
+    expect(court?.pairAPlayers).toEqual(["佐藤\u00a0F", "鈴木\u00a0M"]);
+    expect(court?.pairBPlayers).toEqual(["高橋\u00a0F", "田中\u00a0M"]);
+    expect(model.pages[0].rounds[0].restCell).toBe("中村\u00a0F");
   });
 });
