@@ -12,6 +12,11 @@ jobs:
   verify:
     name: Verify
     runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_FIREBASE_API_KEY: ci-api-key
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ci.firebaseapp.com
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: tennis-organizing-app-ci
+      NEXT_PUBLIC_FIREBASE_APP_ID: 1:000000000000:web:ci
 
     steps:
       - name: Checkout
