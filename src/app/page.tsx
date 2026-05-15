@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import packageJson from "../../package.json";
 import {
@@ -28,7 +28,7 @@ import {
 } from "firebase/auth";
 import { auth } from "@/lib/firebase/client";
 import { formatGuestNumberingBreakdown } from "@/features/guests/formatGuestNumberingBreakdown";
-import { getParticipantGenderMark } from "@/features/matchups/formatParticipantDisplayName";
+import { formatParticipantDisplayName } from "@/features/matchups/formatParticipantDisplayName";
 import { addMember, deactivateMember, subscribeMembers, updateMember } from "@/features/members/memberRepository";
 import { emptyMemberForm, type Member, type MemberFormInput } from "@/features/members/model";
 import { useMatchupPdfExport } from "@/hooks/useMatchupPdfExport";
@@ -1192,14 +1192,14 @@ function MatchupResultPanel(props: {
   const participantsById = new Map(props.result.conditions.participants.map((participant) => [participant.id, participant]));
   const eventName = props.result.conditions.eventName?.trim() || "対戦表";
 
-  function playerNode(playerId: string) {
+  function playerName(playerId: string) {
     const participant = participantsById.get(playerId);
 
     if (!participant) {
-      return <span className="participant-display-name">{playerId}</span>;
+      return playerId;
     }
 
-    return <ParticipantDisplayName participant={participant} showGender={!props.isGuest} />;
+    return props.isGuest ? participant.name : formatParticipantDisplayName(participant);
   }
 
   function pairLabel(pair?: MatchupPair | null) {
@@ -1207,13 +1207,7 @@ function MatchupResultPanel(props: {
       return "なし";
     }
 
-    return (
-      <span className="pair-display">
-        {playerNode(pair.player1Id)}
-        <span className="pair-separator"> / </span>
-        {playerNode(pair.player2Id)}
-      </span>
-    );
+    return `${playerName(pair.player1Id)} / ${playerName(pair.player2Id)}`;
   }
 
   return (
@@ -1241,7 +1235,7 @@ function MatchupResultPanel(props: {
 
       <div className="round-list">
         {props.result.rounds.map((round) => {
-          const restPlayerIds = round.restPlayerIds;
+          const restNames = round.restPlayerIds.map(playerName);
           const courtCards = round.courts.map((court) => (
             <article className="court-card" key={`${round.roundNumber}-${court.courtNumber}`}>
               <h4>コート{court.courtNumber}</h4>
@@ -1264,18 +1258,7 @@ function MatchupResultPanel(props: {
           const restCard = (
             <div className="rest-card" key={`${round.roundNumber}-rest`}>
               <span>{props.isGuest ? "休憩者" : "休憩"}</span>
-              <strong>
-                {restPlayerIds.length > 0
-                  ? restPlayerIds.map((playerId, index) => (
-                      <Fragment key={`${playerId}-${index}`}>
-                        {index > 0 ? "、" : null}
-                        {playerNode(playerId)}
-                      </Fragment>
-                    ))
-                  : props.isGuest
-                    ? "この回の休憩者はいません。"
-                    : "なし"}
-              </strong>
+              <strong>{restNames.length > 0 ? restNames.join("、") : props.isGuest ? "この回の休憩者はいません。" : "なし"}</strong>
             </div>
           );
 
@@ -1302,25 +1285,6 @@ function MatchupResultPanel(props: {
         })}
       </div>
     </section>
-  );
-}
-
-function ParticipantDisplayName(props: { participant: MatchupParticipant; showGender: boolean }) {
-  const mark = props.showGender ? getParticipantGenderMark(props.participant.gender) : "";
-  const genderLabel = mark ? (props.participant.gender === "female" ? "女性" : "男性") : "";
-
-  return (
-    <span className="participant-display-name" aria-label={genderLabel ? `${props.participant.name}（${genderLabel}）` : undefined}>
-      <span aria-hidden={genderLabel ? "true" : undefined}>{props.participant.name}</span>
-      {mark ? (
-        <>
-          {"\u2060"}
-          <span className="participant-gender-mark" aria-hidden="true">
-            {mark}
-          </span>
-        </>
-      ) : null}
-    </span>
   );
 }
 

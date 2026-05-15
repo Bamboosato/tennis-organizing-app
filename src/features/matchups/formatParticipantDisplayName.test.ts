@@ -3,20 +3,20 @@ import { formatParticipantDisplayName, getParticipantGenderMark } from "./format
 
 describe("formatParticipantDisplayName", () => {
   it("adds the female marker", () => {
-    expect(formatParticipantDisplayName({ name: "佐藤", gender: "female" })).toBe("佐藤♀");
+    expect(formatParticipantDisplayName({ name: "佐藤", gender: "female" })).toBe("佐藤\u00a0F");
   });
 
   it("adds the male marker", () => {
-    expect(formatParticipantDisplayName({ name: "鈴木", gender: "male" })).toBe("鈴木♂");
+    expect(formatParticipantDisplayName({ name: "鈴木", gender: "male" })).toBe("鈴木\u00a0M");
   });
 
   it("does not add a marker when gender is absent", () => {
     expect(formatParticipantDisplayName({ name: "Guest" })).toBe("Guest");
   });
 
-  it("returns the marker independently for screen rendering", () => {
-    expect(getParticipantGenderMark("female")).toBe("♀");
-    expect(getParticipantGenderMark("male")).toBe("♂");
+  it("returns the ASCII marker independently", () => {
+    expect(getParticipantGenderMark("female")).toBe("F");
+    expect(getParticipantGenderMark("male")).toBe("M");
     expect(getParticipantGenderMark()).toBe("");
   });
 });
