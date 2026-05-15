@@ -27,6 +27,7 @@ import {
   type User,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase/client";
+import { formatGuestNumberingBreakdown } from "@/features/guests/formatGuestNumberingBreakdown";
 import { formatParticipantDisplayName } from "@/features/matchups/formatParticipantDisplayName";
 import { addMember, deactivateMember, subscribeMembers, updateMember } from "@/features/members/memberRepository";
 import { emptyMemberForm, type Member, type MemberFormInput } from "@/features/members/model";
@@ -1610,24 +1611,6 @@ function buildGuestParticipants(femaleCount: number, maleCount: number): Matchup
   }
 
   return participants;
-}
-
-function formatGuestNumberingBreakdown(femaleCount: number, maleCount: number) {
-  const ranges: string[] = [];
-
-  if (femaleCount > 0) {
-    ranges.push(`${formatNumberRange(1, femaleCount)}：女性`);
-  }
-
-  if (maleCount > 0) {
-    ranges.push(`${formatNumberRange(femaleCount + 1, femaleCount + maleCount)}：男性`);
-  }
-
-  return ranges.join("、");
-}
-
-function formatNumberRange(start: number, end: number) {
-  return start === end ? `${start}` : `${start}-${end}`;
 }
 
 function toUsableCourtCount(participantCount: number, requestedCourtCount: number | null) {
