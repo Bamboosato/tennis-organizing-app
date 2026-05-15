@@ -5,8 +5,12 @@ const GENDER_MARKS: Record<ParticipantGender, string> = {
   male: "♂",
 };
 
+export function getParticipantGenderMark(gender?: ParticipantGender) {
+  return gender ? GENDER_MARKS[gender] : "";
+}
+
 export function formatParticipantDisplayName(participant: { name: string; gender?: ParticipantGender }) {
-  const mark = participant.gender ? GENDER_MARKS[participant.gender] : "";
+  const mark = getParticipantGenderMark(participant.gender);
 
   return `${participant.name}${mark}`;
 }

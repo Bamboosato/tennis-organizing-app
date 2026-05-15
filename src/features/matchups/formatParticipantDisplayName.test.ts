@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatParticipantDisplayName } from "./formatParticipantDisplayName";
+import { formatParticipantDisplayName, getParticipantGenderMark } from "./formatParticipantDisplayName";
 
 describe("formatParticipantDisplayName", () => {
   it("adds the female marker", () => {
@@ -12,5 +12,11 @@ describe("formatParticipantDisplayName", () => {
 
   it("does not add a marker when gender is absent", () => {
     expect(formatParticipantDisplayName({ name: "Guest" })).toBe("Guest");
+  });
+
+  it("returns the marker independently for screen rendering", () => {
+    expect(getParticipantGenderMark("female")).toBe("♀");
+    expect(getParticipantGenderMark("male")).toBe("♂");
+    expect(getParticipantGenderMark()).toBe("");
   });
 });
