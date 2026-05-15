@@ -2,8 +2,7 @@
 
 テニス練習会向けのメンバー管理と対戦表作成アプリです。
 
-公開URL（予定）: [https://tennis-organizing-app.vercel.app/](https://tennis-organizing-app.vercel.app/)  
-実際の公開URLは Vercel Project 作成後に確定します。
+公開URL: [https://tennis-organizing-app.vercel.app/](https://tennis-organizing-app.vercel.app/)  
 
 ## Current Artifacts
 
