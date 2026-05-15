@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import packageJson from "../../package.json";
 import {
   ArrowLeft,
   Eye,
@@ -26,6 +27,7 @@ import {
   type User,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase/client";
+import { formatParticipantDisplayName } from "@/features/matchups/formatParticipantDisplayName";
 import { addMember, deactivateMember, subscribeMembers, updateMember } from "@/features/members/memberRepository";
 import { emptyMemberForm, type Member, type MemberFormInput } from "@/features/members/model";
 import { useMatchupPdfExport } from "@/hooks/useMatchupPdfExport";
@@ -33,6 +35,9 @@ import { useMatchupPdfExport } from "@/hooks/useMatchupPdfExport";
 type MatchupMode = "standard" | "sameGenderPriority" | "mixedDoublesPriority";
 type Screen = "login" | "passwordSetup" | "home" | "memberManagement";
 type SortMode = "registered" | "kana";
+
+const APP_COPYRIGHT_YEAR = 2026;
+const APP_VERSION = packageJson.version;
 type MatchupParticipant = {
   id: string;
   name: string;
@@ -686,6 +691,9 @@ export default function Home() {
             sortMode={sortMode}
           />
         )}
+        <footer className="app-footer">
+          &copy; {APP_COPYRIGHT_YEAR} Bamboosato&nbsp; v{APP_VERSION}
+        </footer>
       </div>
     </main>
   );
@@ -907,7 +915,10 @@ function HomeScreen(props: {
   const guestFemaleDisplayCount = toDisplayCount(props.guestFemaleCount);
   const guestMaleDisplayCount = toDisplayCount(props.guestMaleCount);
   const guestParticipantCount = guestFemaleDisplayCount + guestMaleDisplayCount;
-  const participantLabel = props.isGuest ? `${guestParticipantCount}人` : `${props.selectedMemberIds.length}人`;
+  const guestNumberingBreakdown = formatGuestNumberingBreakdown(guestFemaleDisplayCount, guestMaleDisplayCount);
+  const participantLabel = props.isGuest
+    ? `${guestParticipantCount}人${guestNumberingBreakdown ? `（${guestNumberingBreakdown}）` : ""}`
+    : `${props.selectedMemberIds.length}人`;
   const canSelectMembers = props.isGuest || props.activeMemberCount > 0;
   const participantCount = props.isGuest
     ? guestParticipantCount
@@ -1181,7 +1192,13 @@ function MatchupResultPanel(props: {
   const eventName = props.result.conditions.eventName?.trim() || "対戦表";
 
   function playerName(playerId: string) {
-    return participantsById.get(playerId)?.name || playerId;
+    const participant = participantsById.get(playerId);
+
+    if (!participant) {
+      return playerId;
+    }
+
+    return props.isGuest ? participant.name : formatParticipantDisplayName(participant);
   }
 
   function pairLabel(pair?: MatchupPair | null) {
@@ -1593,6 +1610,24 @@ function buildGuestParticipants(femaleCount: number, maleCount: number): Matchup
   }
 
   return participants;
+}
+
+function formatGuestNumberingBreakdown(femaleCount: number, maleCount: number) {
+  const ranges: string[] = [];
+
+  if (femaleCount > 0) {
+    ranges.push(`${formatNumberRange(1, femaleCount)}：女性`);
+  }
+
+  if (maleCount > 0) {
+    ranges.push(`${formatNumberRange(femaleCount + 1, femaleCount + maleCount)}：男性`);
+  }
+
+  return ranges.join("、");
+}
+
+function formatNumberRange(start: number, end: number) {
+  return start === end ? `${start}` : `${start}-${end}`;
 }
 
 function toUsableCourtCount(participantCount: number, requestedCourtCount: number | null) {

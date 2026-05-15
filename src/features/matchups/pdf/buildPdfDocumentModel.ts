@@ -1,3 +1,5 @@
+import { formatParticipantDisplayName } from "../formatParticipantDisplayName";
+
 export type PdfMatchupMode = "standard" | "sameGenderPriority" | "mixedDoublesPriority";
 
 export type PdfMatchupParticipant = {
@@ -82,7 +84,7 @@ export type PdfDocumentModel = {
 };
 
 function createParticipantNameMap(participants: PdfMatchupParticipant[]) {
-  return new Map(participants.map((participant) => [participant.id, participant.name]));
+  return new Map(participants.map((participant) => [participant.id, formatParticipantDisplayName(participant)]));
 }
 
 function createParticipantOrderMap(participants: PdfMatchupParticipant[]) {
