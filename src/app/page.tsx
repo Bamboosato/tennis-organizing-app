@@ -27,8 +27,10 @@ import {
   type User,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase/client";
+import { buildGuestParticipants } from "@/features/guests/buildGuestParticipants";
 import { formatGuestNumberingBreakdown } from "@/features/guests/formatGuestNumberingBreakdown";
 import { formatParticipantDisplayName } from "@/features/matchups/formatParticipantDisplayName";
+import { formatParticipantSummaryLabel } from "@/features/matchups/formatParticipantSummaryLabel";
 import { addMember, deactivateMember, subscribeMembers, updateMember } from "@/features/members/memberRepository";
 import { emptyMemberForm, type Member, type MemberFormInput } from "@/features/members/model";
 import { useMatchupPdfExport } from "@/hooks/useMatchupPdfExport";
@@ -109,6 +111,10 @@ export default function Home() {
   const [guestMaleCount, setGuestMaleCount] = useState("4");
   const [draftGuestFemaleCount, setDraftGuestFemaleCount] = useState("4");
   const [draftGuestMaleCount, setDraftGuestMaleCount] = useState("4");
+  const [memberGuestFemaleCount, setMemberGuestFemaleCount] = useState("0");
+  const [memberGuestMaleCount, setMemberGuestMaleCount] = useState("0");
+  const [draftMemberGuestFemaleCount, setDraftMemberGuestFemaleCount] = useState("0");
+  const [draftMemberGuestMaleCount, setDraftMemberGuestMaleCount] = useState("0");
   const [courtCount, setCourtCount] = useState("2");
   const [roundCount, setRoundCount] = useState("4");
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
@@ -287,6 +293,10 @@ export default function Home() {
     setMemberError("");
     setSelectedMemberIds([]);
     setDraftSelectedMemberIds([]);
+    setMemberGuestFemaleCount("0");
+    setMemberGuestMaleCount("0");
+    setDraftMemberGuestFemaleCount("0");
+    setDraftMemberGuestMaleCount("0");
     setIsMemberSelectionOpen(false);
     setMemberSelectionError("");
     setMatchupResult(null);
@@ -342,13 +352,11 @@ export default function Home() {
       return;
     }
 
-    if (activeMembers.length === 0) {
-      return;
-    }
-
     const activeMemberIds = new Set(activeMembers.map((member) => member.id));
 
     setDraftSelectedMemberIds(selectedMemberIds.filter((memberId) => activeMemberIds.has(memberId)));
+    setDraftMemberGuestFemaleCount(memberGuestFemaleCount);
+    setDraftMemberGuestMaleCount(memberGuestMaleCount);
     setMemberSelectionError("");
     setIsMemberSelectionOpen(true);
   }
@@ -359,6 +367,8 @@ export default function Home() {
       setDraftGuestMaleCount(guestMaleCount);
     } else {
       setDraftSelectedMemberIds(selectedMemberIds);
+      setDraftMemberGuestFemaleCount(memberGuestFemaleCount);
+      setDraftMemberGuestMaleCount(memberGuestMaleCount);
     }
 
     setIsMemberSelectionOpen(false);
@@ -370,12 +380,17 @@ export default function Home() {
       setGuestFemaleCount(draftGuestFemaleCount);
       setGuestMaleCount(draftGuestMaleCount);
     } else {
-      if (draftSelectedMemberIds.length > 30) {
-        setMemberSelectionError("30人を超えています。");
+      const draftGuestCount =
+        toDisplayCount(draftMemberGuestFemaleCount) + toDisplayCount(draftMemberGuestMaleCount);
+
+      if (draftSelectedMemberIds.length + draftGuestCount > 30) {
+        setMemberSelectionError("ゲスト含めて30人を超えています。");
         return;
       }
 
       setSelectedMemberIds(draftSelectedMemberIds);
+      setMemberGuestFemaleCount(draftMemberGuestFemaleCount);
+      setMemberGuestMaleCount(draftMemberGuestMaleCount);
     }
 
     setIsMemberSelectionOpen(false);
@@ -413,11 +428,17 @@ export default function Home() {
     const parsedRoundCount = parseCount(roundCount);
     const participants = user.isAnonymous
       ? buildGuestParticipants(toDisplayCount(guestFemaleCount), toDisplayCount(guestMaleCount))
-      : selectedMembers.map((member) => ({
-          id: member.id,
-          name: member.nickname,
-          gender: member.gender,
-        }));
+      : [
+          ...selectedMembers.map((member) => ({
+            id: member.id,
+            name: member.nickname,
+            gender: member.gender,
+          })),
+          ...buildGuestParticipants(toDisplayCount(memberGuestFemaleCount), toDisplayCount(memberGuestMaleCount), {
+            idPrefix: "member-guest",
+            nameStyle: "guestNickname",
+          }),
+        ];
 
     setMatchupError("");
     setMatchupResult(null);
@@ -653,6 +674,8 @@ export default function Home() {
             courtCount={courtCount}
             draftGuestFemaleCount={draftGuestFemaleCount}
             draftGuestMaleCount={draftGuestMaleCount}
+            draftMemberGuestFemaleCount={draftMemberGuestFemaleCount}
+            draftMemberGuestMaleCount={draftMemberGuestMaleCount}
             draftSelectedMemberIds={draftSelectedMemberIds}
             eventName={eventName}
             guestFemaleCount={guestFemaleCount}
@@ -665,12 +688,16 @@ export default function Home() {
             matchupError={matchupError}
             matchupResult={matchupResult}
             memberSelectionOpen={isMemberSelectionOpen}
+            memberGuestFemaleCount={memberGuestFemaleCount}
+            memberGuestMaleCount={memberGuestMaleCount}
             members={sortedMembers}
             onCourtCountChange={setCourtCount}
             onCourtReductionCancel={cancelCourtReductionConfirmation}
             onCourtReductionConfirm={confirmCourtReduction}
             onDraftGuestFemaleCountChange={setDraftGuestFemaleCount}
             onDraftGuestMaleCountChange={setDraftGuestMaleCount}
+            onDraftMemberGuestFemaleCountChange={setDraftMemberGuestFemaleCount}
+            onDraftMemberGuestMaleCountChange={setDraftMemberGuestMaleCount}
             onEventNameChange={setEventName}
             onMemberRegistration={openMemberRegistration}
             onMemberSelectionCancel={cancelMemberSelection}
@@ -870,6 +897,8 @@ function HomeScreen(props: {
   courtCount: string;
   draftGuestFemaleCount: string;
   draftGuestMaleCount: string;
+  draftMemberGuestFemaleCount: string;
+  draftMemberGuestMaleCount: string;
   draftSelectedMemberIds: string[];
   eventName: string;
   guestFemaleCount: string;
@@ -882,12 +911,16 @@ function HomeScreen(props: {
   matchupError: string;
   matchupResult: MatchupResult | null;
   memberSelectionOpen: boolean;
+  memberGuestFemaleCount: string;
+  memberGuestMaleCount: string;
   members: Member[];
   onCourtCountChange: (value: string) => void;
   onCourtReductionCancel: () => void;
   onCourtReductionConfirm: () => void;
   onDraftGuestFemaleCountChange: (value: string) => void;
   onDraftGuestMaleCountChange: (value: string) => void;
+  onDraftMemberGuestFemaleCountChange: (value: string) => void;
+  onDraftMemberGuestMaleCountChange: (value: string) => void;
   onEventNameChange: (value: string) => void;
   onMemberRegistration: () => void;
   onMemberSelectionCancel: () => void;
@@ -917,16 +950,24 @@ function HomeScreen(props: {
   const guestMaleDisplayCount = toDisplayCount(props.guestMaleCount);
   const guestParticipantCount = guestFemaleDisplayCount + guestMaleDisplayCount;
   const guestNumberingBreakdown = formatGuestNumberingBreakdown(guestFemaleDisplayCount, guestMaleDisplayCount);
-  const participantLabel = props.isGuest
-    ? `${guestParticipantCount}人${guestNumberingBreakdown ? `（${guestNumberingBreakdown}）` : ""}`
-    : `${props.selectedMemberIds.length}人`;
-  const canSelectMembers = props.isGuest || props.activeMemberCount > 0;
+  const memberGuestFemaleDisplayCount = toDisplayCount(props.memberGuestFemaleCount);
+  const memberGuestMaleDisplayCount = toDisplayCount(props.memberGuestMaleCount);
+  const memberGuestParticipantCount = memberGuestFemaleDisplayCount + memberGuestMaleDisplayCount;
+  const registeredParticipantCount = props.selectedMemberIds.length + memberGuestParticipantCount;
   const participantCount = props.isGuest
     ? guestParticipantCount
-    : props.selectedMemberIds.length;
-  const selectedSummaryCount = props.isGuest ? participantCount : props.selectedMemberIds.length;
-  const femaleSummaryCount = props.isGuest ? guestFemaleDisplayCount : props.selectedFemaleCount;
-  const maleSummaryCount = props.isGuest ? guestMaleDisplayCount : props.selectedMaleCount;
+    : registeredParticipantCount;
+  const participantLabel = formatParticipantSummaryLabel({
+    guestCount: memberGuestParticipantCount,
+    guestNumberingBreakdown,
+    isGuest: props.isGuest,
+    participantCount,
+  });
+  const selectedSummaryCount = participantCount;
+  const femaleSummaryCount = props.isGuest
+    ? guestFemaleDisplayCount
+    : props.selectedFemaleCount + memberGuestFemaleDisplayCount;
+  const maleSummaryCount = props.isGuest ? guestMaleDisplayCount : props.selectedMaleCount + memberGuestMaleDisplayCount;
   const parsedCourtCount = parseCount(props.courtCount);
   const parsedRoundCount = parseCount(props.roundCount);
   const usableCourtCount = toUsableCourtCount(participantCount, parsedCourtCount);
@@ -945,7 +986,7 @@ function HomeScreen(props: {
     : "メンバー登録画面を開きます。";
   const memberSelectionTitle = props.isGuest
     ? "女性人数・男性人数を入力します。"
-    : "参加メンバーを選択します。";
+    : "参加メンバーとゲスト人数を選択します。";
   const matchupCreateTitle = canCreateMatchup
     ? "現在の条件で対戦表を作成します。"
     : "参加者数、コート数、実施回数を確認してください。";
@@ -1021,7 +1062,6 @@ function HomeScreen(props: {
               <span className="button-title-wrap" title={memberSelectionTitle}>
                 <button
                   className="button button-secondary member-select-button"
-                  disabled={!canSelectMembers}
                   title={memberSelectionTitle}
                   type="button"
                   onClick={props.onMemberSelectionOpen}
@@ -1056,10 +1096,14 @@ function HomeScreen(props: {
               ) : (
                 <ParticipantSelectionDropdown
                   error={props.memberSelectionError}
+                  guestFemaleCount={props.draftMemberGuestFemaleCount}
+                  guestMaleCount={props.draftMemberGuestMaleCount}
                   members={props.members}
                   onCancel={props.onMemberSelectionCancel}
                   onClear={props.onSelectedMembersClear}
                   onConfirm={props.onMemberSelectionConfirm}
+                  onGuestFemaleCountChange={props.onDraftMemberGuestFemaleCountChange}
+                  onGuestMaleCountChange={props.onDraftMemberGuestMaleCountChange}
                   onSelectAll={props.onSelectedMembersSelectAll}
                   onSortModeChange={props.onSortModeChange}
                   onToggle={props.onSelectedMemberToggle}
@@ -1348,10 +1392,14 @@ function GuestParticipantCountDropdown(props: {
 
 function ParticipantSelectionDropdown(props: {
   error: string;
+  guestFemaleCount: string;
+  guestMaleCount: string;
   members: Member[];
   onCancel: () => void;
   onClear: () => void;
   onConfirm: () => void;
+  onGuestFemaleCountChange: (value: string) => void;
+  onGuestMaleCountChange: (value: string) => void;
   onSelectAll: () => void;
   onSortModeChange: (mode: SortMode) => void;
   onToggle: (memberId: string) => void;
@@ -1359,6 +1407,8 @@ function ParticipantSelectionDropdown(props: {
   sortMode: SortMode;
 }) {
   const selectedCount = props.selectedMemberIds.length;
+  const guestCount = toDisplayCount(props.guestFemaleCount) + toDisplayCount(props.guestMaleCount);
+  const totalSelectedCount = selectedCount + guestCount;
   const selectableMemberIds = props.members.map((member) => member.id);
   const allSelectableMembersSelected =
     selectableMemberIds.length > 0 && selectableMemberIds.every((memberId) => props.selectedMemberIds.includes(memberId));
@@ -1368,7 +1418,36 @@ function ParticipantSelectionDropdown(props: {
       <div className="participant-dropdown-header">
         <div className="participant-dropdown-title-row">
           <h3>参加メンバー選択（最大30人）</h3>
-          <p className="muted">選択中: {selectedCount} / {props.members.length}</p>
+          <p className="muted">合計: {totalSelectedCount} / 30</p>
+        </div>
+        <div className="participant-guest-count-panel">
+          <div className="participant-guest-count-title">ゲスト人数</div>
+          <div className="guest-count-grid participant-guest-count-grid">
+            <div className="field">
+              <label htmlFor="member-guest-female-count">女性</label>
+              <input
+                id="member-guest-female-count"
+                inputMode="numeric"
+                min={0}
+                onChange={(event) => props.onGuestFemaleCountChange(event.target.value)}
+                pattern="[0-9]*"
+                type="text"
+                value={props.guestFemaleCount}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="member-guest-male-count">男性</label>
+              <input
+                id="member-guest-male-count"
+                inputMode="numeric"
+                min={0}
+                onChange={(event) => props.onGuestMaleCountChange(event.target.value)}
+                pattern="[0-9]*"
+                type="text"
+                value={props.guestMaleCount}
+              />
+            </div>
+          </div>
         </div>
         <div className="actions participant-header-actions">
           <SortModeSelect onChange={props.onSortModeChange} value={props.sortMode} />
@@ -1406,10 +1485,10 @@ function ParticipantSelectionDropdown(props: {
 
               return (
                 <label className={`participant-card ${selected ? "participant-card-selected" : ""}`} key={member.id}>
-                  <span>
+                  <span className="participant-card-name">
                     <strong title={member.nickname}>{member.nickname}</strong>
-                    <small>{member.gender === "female" ? "女性" : "男性"}</small>
                   </span>
+                  <small className="participant-card-gender">{member.gender === "female" ? "女性" : "男性"}</small>
                   <input
                     checked={selected}
                     onChange={() => props.onToggle(member.id)}
@@ -1592,25 +1671,6 @@ function toDisplayCount(value: string) {
   }
 
   return Math.max(0, Math.trunc(parsed));
-}
-
-function buildGuestParticipants(femaleCount: number, maleCount: number): MatchupParticipant[] {
-  const participants: MatchupParticipant[] = [];
-  const totalCount = femaleCount + maleCount;
-
-  for (let index = 0; index < totalCount; index += 1) {
-    const gender = index < femaleCount ? "female" : "male";
-    const displayNumber = String(index + 1).padStart(2, "0");
-    const displayName = `${displayNumber}${gender === "female" ? "F" : "M"}`;
-
-    participants.push({
-      id: `guest-${displayNumber}`,
-      name: displayName,
-      gender,
-    });
-  }
-
-  return participants;
 }
 
 function toUsableCourtCount(participantCount: number, requestedCourtCount: number | null) {

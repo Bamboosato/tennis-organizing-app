@@ -849,6 +849,29 @@ h2 {
   gap: 12px;
 }
 
+.participant-guest-count-panel {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-blue);
+  padding: 10px;
+}
+
+.participant-guest-count-title {
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.participant-guest-count-grid {
+  gap: 8px;
+}
+
+.participant-guest-count-grid .field {
+  gap: 4px;
+}
+
 .participant-dropdown-actions {
   display: flex;
   align-items: center;
@@ -891,15 +914,15 @@ h2 {
 
 .participant-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) 44px auto;
   gap: 10px;
   align-items: center;
   width: min(100%, var(--participant-list-width));
-  min-height: 48px;
+  min-height: 40px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: #fff;
-  padding: 8px 10px;
+  padding: 6px 10px;
 }
 
 .participant-card-selected {
@@ -912,12 +935,11 @@ h2 {
   height: 18px;
 }
 
-.participant-card span {
+.participant-card-name {
   min-width: 0;
 }
 
-.participant-card strong,
-.participant-card small {
+.participant-card strong {
   display: block;
 }
 
@@ -927,10 +949,13 @@ h2 {
   white-space: nowrap;
 }
 
-.participant-card small {
-  margin-top: 2px;
+.participant-card-gender {
+  justify-self: center;
   color: var(--muted);
+  font-size: 0.82rem;
   font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .summary-grid {
