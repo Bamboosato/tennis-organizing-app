@@ -15,7 +15,8 @@ CLI確認結果:
 | Vercel scope | `bamboosato` |
 | Project name | `tennis-organizing-app` |
 | Project ID | `prj_z1XNHPZ5l6WCfxhARxot7HbzI0pI` |
-| Production URL | `https://tennis-organizing-app.vercel.app` |
+| Production URL | `https://tennis-organizing-app.bamboosato.com` |
+| Existing Vercel URL | `https://tennis-organizing-app.vercel.app` |
 | Node.js version | `24.x` |
 | CLI link | 済み |
 
@@ -27,6 +28,8 @@ vercel link --yes --project tennis-organizing-app
 ```
 
 `vercel link` によりローカルに `.vercel/` が作成されたため、`.gitignore` で除外する。
+
+2026-05-22 時点で、主公開URLを `https://tennis-organizing-app.bamboosato.com` に変更する。既存の Vercel URL `https://tennis-organizing-app.vercel.app` も継続利用可能とする。
 
 ## 3. Production Environment Variables
 

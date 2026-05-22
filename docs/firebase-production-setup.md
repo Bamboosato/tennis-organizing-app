@@ -36,8 +36,10 @@ Firebase Console で以下を確認する。
 | Authentication | 必須 | Firebase Console で Authentication を開始済み |
 | Email/Password provider | 必須 | Sign-in method で Email/Password を有効化 |
 | Anonymous provider | 必須 | Sign-in method で Anonymous を有効化 |
-| Authorized domains | 必須 | Vercel 本番ドメインと Preview 確認に必要なドメインを許可 |
+| Authorized domains | 必須 | 本番利用する公開ドメインと Preview 確認に必要なドメインを許可 |
 | Password policy | 任意 | ver1.00 では Firebase 既定または運用方針に合わせる |
+
+2026-05-22 時点で、主公開URL用の `tennis-organizing-app.bamboosato.com` を Firebase Authentication の Authorized domains に追加済み。Firebase default domains は継続利用する。
 
 アプリ側の利用箇所:
 
