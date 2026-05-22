@@ -123,6 +123,7 @@ export default function Home() {
   const [memberSelectionError, setMemberSelectionError] = useState("");
   const [matchupResult, setMatchupResult] = useState<MatchupResult | null>(null);
   const [matchupError, setMatchupError] = useState("");
+  const [isMatchupCompleteToastVisible, setIsMatchupCompleteToastVisible] = useState(false);
   const [isMatchupGenerating, setIsMatchupGenerating] = useState(false);
   const [courtReductionConfirmation, setCourtReductionConfirmation] = useState<CourtReductionConfirmation | null>(null);
   const { clearPdfError, exportPdf, isExportingPdf, pdfErrorMessage } = useMatchupPdfExport();
@@ -182,6 +183,20 @@ export default function Home() {
       },
     );
   }, [user]);
+
+  useEffect(() => {
+    if (!isMatchupCompleteToastVisible) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setIsMatchupCompleteToastVisible(false);
+    }, 3000);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [isMatchupCompleteToastVisible]);
 
   const members = useMemo(
     () => (memberState.uid === user?.uid ? memberState.members : []),
@@ -301,6 +316,7 @@ export default function Home() {
     setMemberSelectionError("");
     setMatchupResult(null);
     setMatchupError("");
+    setIsMatchupCompleteToastVisible(false);
     setIsMatchupGenerating(false);
     setCourtReductionConfirmation(null);
     setPassword("");
@@ -442,6 +458,7 @@ export default function Home() {
 
     setMatchupError("");
     setMatchupResult(null);
+    setIsMatchupCompleteToastVisible(false);
     setCourtReductionConfirmation(null);
 
     if (
@@ -482,6 +499,7 @@ export default function Home() {
 
   async function createMatchup(payload: GenerateMatchupPayload) {
     setCourtReductionConfirmation(null);
+    setIsMatchupCompleteToastVisible(false);
     setIsMatchupGenerating(true);
 
     try {
@@ -499,6 +517,7 @@ export default function Home() {
       }
 
       setMatchupResult(body.data);
+      setIsMatchupCompleteToastVisible(true);
     } catch (error) {
       setMatchupError(toMessage(error, "対戦表を作成できませんでした。"));
     } finally {
@@ -723,6 +742,11 @@ export default function Home() {
           &copy; {APP_COPYRIGHT_YEAR} Bamboosato&nbsp; v{APP_VERSION}
         </footer>
       </div>
+      {isMatchupCompleteToastVisible ? (
+        <div className="fixed-toast fixed-toast-success" role="status" aria-live="polite">
+          対戦表作成が完了しました。
+        </div>
+      ) : null}
     </main>
   );
 }
@@ -996,7 +1020,7 @@ function HomeScreen(props: {
       <section className="home-hero">
         <div>
           <p className="section-kicker">Tennis Organizing App</p>
-          <p className="home-hero-copy">登録したメンバーを選択して、対戦表を作成します。Guestでは連番表示の対戦表になります</p>
+          <p className="home-hero-copy">登録したメンバーを選択して、対戦表を作成します。Guestでは連番表示の対戦表になります。</p>
         </div>
         <div className={`hero-actions ${props.isGuest ? "hero-actions-guest" : ""}`}>
           {!props.isGuest ? (
@@ -1024,7 +1048,7 @@ function HomeScreen(props: {
       <section className="panel condition-panel">
         <div className="condition-heading">
           <p className="section-kicker">Conditions</p>
-          <p className="condition-intro">参加者、コート数、実施回数、対戦モードを指定します。</p>
+          <p className="condition-intro">メンバー選択（選択or人数入力）、コート数、実施回数、対戦モードを指定します。</p>
         </div>
 
         <div className="condition-block">
@@ -1064,7 +1088,7 @@ function HomeScreen(props: {
                   className="button button-secondary member-select-button"
                   title={memberSelectionTitle}
                   type="button"
-                  onClick={props.onMemberSelectionOpen}
+                  onClick={props.memberSelectionOpen ? props.onMemberSelectionCancel : props.onMemberSelectionOpen}
                 >
                   <Users size={18} />
                   メンバー選択
