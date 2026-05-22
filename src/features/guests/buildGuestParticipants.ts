@@ -4,11 +4,8 @@ export type GuestParticipant = {
   gender: "female" | "male";
 };
 
-type GuestParticipantNameStyle = "numberWithGender" | "guestNickname";
-
 type BuildGuestParticipantsOptions = {
   idPrefix?: string;
-  nameStyle?: GuestParticipantNameStyle;
 };
 
 export function buildGuestParticipants(
@@ -19,7 +16,6 @@ export function buildGuestParticipants(
   const participants: GuestParticipant[] = [];
   const totalCount = femaleCount + maleCount;
   const idPrefix = options.idPrefix ?? "guest";
-  const nameStyle = options.nameStyle ?? "numberWithGender";
 
   for (let index = 0; index < totalCount; index += 1) {
     const gender = index < femaleCount ? "female" : "male";
@@ -27,7 +23,7 @@ export function buildGuestParticipants(
 
     participants.push({
       id: `${idPrefix}-${displayNumber}`,
-      name: formatGuestParticipantName(displayNumber, gender, nameStyle),
+      name: formatGuestParticipantName(displayNumber),
       gender,
     });
   }
@@ -35,14 +31,6 @@ export function buildGuestParticipants(
   return participants;
 }
 
-function formatGuestParticipantName(
-  displayNumber: string,
-  gender: GuestParticipant["gender"],
-  nameStyle: GuestParticipantNameStyle,
-) {
-  if (nameStyle === "guestNickname") {
-    return `ゲスト-${displayNumber}`;
-  }
-
-  return `${displayNumber}${gender === "female" ? "F" : "M"}`;
+function formatGuestParticipantName(displayNumber: string) {
+  return `ゲスト${displayNumber}`;
 }

@@ -14,14 +14,13 @@ describe("formatParticipantSummaryLabel", () => {
     );
   });
 
-  it("keeps Guest-login numbering breakdown unchanged", () => {
+  it("shows only participant count for Guest login", () => {
     expect(
       formatParticipantSummaryLabel({
         guestCount: 8,
-        guestNumberingBreakdown: "1-4：女性、5-8：男性",
         isGuest: true,
         participantCount: 8,
       }),
-    ).toBe("8人（1-4：女性、5-8：男性）");
+    ).toBe("8人");
   });
 });

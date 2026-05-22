@@ -15,6 +15,7 @@ import {
   type PdfMatchupResult,
   type PdfRoundBlock,
 } from "./buildPdfDocumentModel";
+import { formatParticipantDisplayName } from "../formatParticipantDisplayName";
 
 const PDF_FONT_URL = "/fonts/NotoSansJP-VF.ttf?v=20260512";
 const PDF_FONT_FILE = "NotoSansJP-VF.ttf";
@@ -336,7 +337,7 @@ function pickMatchupAppPdfTypography(params: {
 }
 
 function createMatchupAppParticipantNameMap(participants: PdfMatchupParticipant[]) {
-  return new Map(participants.map((participant) => [participant.id, participant.name]));
+  return new Map(participants.map((participant) => [participant.id, formatParticipantDisplayName(participant)]));
 }
 
 function createMatchupAppParticipantOrderMap(participants: PdfMatchupParticipant[]) {

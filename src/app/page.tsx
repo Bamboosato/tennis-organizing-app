@@ -28,7 +28,7 @@ import {
 } from "firebase/auth";
 import { auth } from "@/lib/firebase/client";
 import { buildGuestParticipants } from "@/features/guests/buildGuestParticipants";
-import { formatGuestNumberingBreakdown } from "@/features/guests/formatGuestNumberingBreakdown";
+import { formatGuestSummaryNumberingBreakdown } from "@/features/guests/formatGuestNumberingBreakdown";
 import { formatParticipantDisplayName } from "@/features/matchups/formatParticipantDisplayName";
 import { formatParticipantSummaryLabel } from "@/features/matchups/formatParticipantSummaryLabel";
 import { addMember, deactivateMember, subscribeMembers, updateMember } from "@/features/members/memberRepository";
@@ -452,7 +452,6 @@ export default function Home() {
           })),
           ...buildGuestParticipants(toDisplayCount(memberGuestFemaleCount), toDisplayCount(memberGuestMaleCount), {
             idPrefix: "member-guest",
-            nameStyle: "guestNickname",
           }),
         ];
 
@@ -973,17 +972,18 @@ function HomeScreen(props: {
   const guestFemaleDisplayCount = toDisplayCount(props.guestFemaleCount);
   const guestMaleDisplayCount = toDisplayCount(props.guestMaleCount);
   const guestParticipantCount = guestFemaleDisplayCount + guestMaleDisplayCount;
-  const guestNumberingBreakdown = formatGuestNumberingBreakdown(guestFemaleDisplayCount, guestMaleDisplayCount);
   const memberGuestFemaleDisplayCount = toDisplayCount(props.memberGuestFemaleCount);
   const memberGuestMaleDisplayCount = toDisplayCount(props.memberGuestMaleCount);
   const memberGuestParticipantCount = memberGuestFemaleDisplayCount + memberGuestMaleDisplayCount;
+  const summaryGuestFemaleCount = props.isGuest ? guestFemaleDisplayCount : memberGuestFemaleDisplayCount;
+  const summaryGuestMaleCount = props.isGuest ? guestMaleDisplayCount : memberGuestMaleDisplayCount;
+  const summaryGuestBreakdown = formatGuestSummaryNumberingBreakdown(summaryGuestFemaleCount, summaryGuestMaleCount);
   const registeredParticipantCount = props.selectedMemberIds.length + memberGuestParticipantCount;
   const participantCount = props.isGuest
     ? guestParticipantCount
     : registeredParticipantCount;
   const participantLabel = formatParticipantSummaryLabel({
     guestCount: memberGuestParticipantCount,
-    guestNumberingBreakdown,
     isGuest: props.isGuest,
     participantCount,
   });
@@ -1005,6 +1005,9 @@ function HomeScreen(props: {
     parsedRoundCount !== null &&
     parsedRoundCount >= 1 &&
     parsedRoundCount <= 20;
+  const summaryRoundCount = canCreateMatchup ? (parsedRoundCount ?? 0) : 0;
+  const summaryParticipantSeparator = props.isGuest ? " / " : "/ ";
+  const summaryRoundSeparator = props.isGuest ? " / " : "/ ";
   const memberRegistrationTitle = props.isGuest
     ? "Guestではメンバー登録を利用できません。"
     : "メンバー登録画面を開きます。";
@@ -1168,8 +1171,11 @@ function HomeScreen(props: {
           <div className="numbering-summary-text">
             <p className="section-kicker">Summary</p>
             <p className="numbering-summary-main">
-              参加者 {participantLabel} / コート {usableCourtCount}面 / {props.roundCount || "0"}回
+              参加 {participantLabel}{summaryParticipantSeparator}コート {usableCourtCount}面{summaryRoundSeparator}{summaryRoundCount}回
             </p>
+            {summaryGuestBreakdown ? (
+              <p className="numbering-summary-guest-breakdown">ゲスト {summaryGuestBreakdown}</p>
+            ) : null}
             {props.matchupError ? <p className="error-message action-error">{props.matchupError}</p> : null}
           </div>
           <span
@@ -1267,7 +1273,7 @@ function MatchupResultPanel(props: {
       return playerId;
     }
 
-    return props.isGuest ? participant.name : formatParticipantDisplayName(participant);
+    return formatParticipantDisplayName(participant);
   }
 
   function pairLabel(pair?: MatchupPair | null) {

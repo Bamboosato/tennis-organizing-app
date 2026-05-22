@@ -47,10 +47,10 @@ describe("buildPdfDocumentModel", () => {
         eventName: "PDF guest markers",
         matchupMode: "standard",
         participants: [
-          { id: "member-guest-01", name: "ゲスト-01", gender: "female", index: 1 },
-          { id: "member-guest-02", name: "ゲスト-02", gender: "female", index: 2 },
-          { id: "member-guest-03", name: "ゲスト-03", gender: "male", index: 3 },
-          { id: "member-guest-04", name: "ゲスト-04", gender: "male", index: 4 },
+          { id: "member-guest-01", name: "ゲスト01", gender: "female", index: 1 },
+          { id: "member-guest-02", name: "ゲスト02", gender: "female", index: 2 },
+          { id: "member-guest-03", name: "ゲスト03", gender: "male", index: 3 },
+          { id: "member-guest-04", name: "ゲスト04", gender: "male", index: 4 },
         ],
         courtCount: 1,
         roundCount: 1,
@@ -74,7 +74,7 @@ describe("buildPdfDocumentModel", () => {
     const model = buildPdfDocumentModel(result);
     const court = model.pages[0].rounds[0].courtRows[0][0];
 
-    expect(court?.pairAPlayers).toEqual(["ゲスト-01\u00a0F", "ゲスト-03\u00a0M"]);
-    expect(court?.pairBPlayers).toEqual(["ゲスト-02\u00a0F", "ゲスト-04\u00a0M"]);
+    expect(court?.pairAPlayers).toEqual(["ゲスト01\u00a0F", "ゲスト03\u00a0M"]);
+    expect(court?.pairBPlayers).toEqual(["ゲスト02\u00a0F", "ゲスト04\u00a0M"]);
   });
 });
