@@ -77,4 +77,62 @@ describe("buildPdfDocumentModel", () => {
     expect(court?.pairAPlayers).toEqual(["ゲスト01\u00a0F", "ゲスト03\u00a0M"]);
     expect(court?.pairBPlayers).toEqual(["ゲスト02\u00a0F", "ゲスト04\u00a0M"]);
   });
+
+  it("uses the regular PDF layout model for Guest login participants", () => {
+    const result: PdfMatchupResult = {
+      conditions: {
+        eventName: "",
+        matchupMode: "standard",
+        participants: [
+          { id: "guest-01", name: "ゲスト01", gender: "female", index: 1 },
+          { id: "guest-02", name: "ゲスト02", gender: "female", index: 2 },
+          { id: "guest-03", name: "ゲスト03", gender: "female", index: 3 },
+          { id: "guest-04", name: "ゲスト04", gender: "female", index: 4 },
+          { id: "guest-05", name: "ゲスト05", gender: "male", index: 5 },
+          { id: "guest-06", name: "ゲスト06", gender: "male", index: 6 },
+          { id: "guest-07", name: "ゲスト07", gender: "male", index: 7 },
+          { id: "guest-08", name: "ゲスト08", gender: "male", index: 8 },
+        ],
+        courtCount: 3,
+        roundCount: 1,
+      },
+      rounds: [
+        {
+          roundNumber: 1,
+          courts: [
+            {
+              courtNumber: 1,
+              pairA: { player1Id: "guest-01", player2Id: "guest-05" },
+              pairB: { player1Id: "guest-02", player2Id: "guest-06" },
+            },
+            {
+              courtNumber: 2,
+              pairA: { player1Id: "guest-03", player2Id: "guest-04" },
+              pairB: { player1Id: "guest-07", player2Id: "guest-08" },
+            },
+            {
+              courtNumber: 3,
+              pairA: { player1Id: "guest-01", player2Id: "guest-02" },
+              pairB: { player1Id: "guest-05", player2Id: "guest-06" },
+            },
+          ],
+          restPlayerIds: ["guest-08", "guest-07"],
+        },
+      ],
+      seed: 9012,
+    };
+
+    const model = buildPdfDocumentModel(result);
+    const round = model.pages[0].rounds[0];
+
+    expect(model.eventName).toBe("テニスサークル運営サポート");
+    expect(round.courtRows).toHaveLength(2);
+    expect(round.courtRows[0][0]?.courtNumber).toBe(1);
+    expect(round.courtRows[0][1]?.courtNumber).toBe(2);
+    expect(round.courtRows[1][0]?.courtNumber).toBe(3);
+    expect(round.courtRows[1][1]).toBeNull();
+    expect(round.courtRows[1][0]?.pairAPlayers).toEqual(["ゲスト01\u00a0F", "ゲスト02\u00a0F"]);
+    expect(round.courtRows[1][0]?.pairBPlayers).toEqual(["ゲスト05\u00a0M", "ゲスト06\u00a0M"]);
+    expect(round.restCell).toBe("ゲスト07\u00a0M, ゲスト08\u00a0M");
+  });
 });

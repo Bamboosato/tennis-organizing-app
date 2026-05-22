@@ -89,8 +89,7 @@
 | 機能 | 内容 | 主な実装箇所 |
 | --- | --- | --- |
 | PDF 作成ボタン | 生成済み対戦表から PDF を保存 | `src/app/page.tsx`, `src/hooks/useMatchupPdfExport.ts` |
-| ログインユーザー向け PDF | ニックネーム表示、2 コート横並び、3 コート以上の折返し、休憩カードを含む PDF | `src/features/matchups/pdf/buildPdfDocumentModel.ts`, `src/features/matchups/pdf/exportMatchupPdf.ts` |
-| Guest 向け PDF | `tennis-matchup-app` 相当の表形式 PDF | `src/features/matchups/pdf/exportMatchupPdf.ts` |
+| ログインユーザー/Guest 共通 PDF | ニックネームまたはゲスト番号表示、2 コート横並び、3 コート以上の折返し、休憩カードを含む PDF | `src/features/matchups/pdf/buildPdfDocumentModel.ts`, `src/features/matchups/pdf/exportMatchupPdf.ts` |
 | 日本語フォント埋め込み | Noto Sans JP を PDF に登録 | `src/features/matchups/pdf/exportMatchupPdf.ts` |
 | ページ分割 | PDF 1 ページあたりの行数/ラウンド数を制御 | `src/features/matchups/pdf/buildPdfDocumentModel.ts`, `src/features/matchups/pdf/exportMatchupPdf.ts` |
 | ファイル名生成 | 開催名、参加人数、コート数、対戦モードをファイル名に含める | `src/features/matchups/pdf/buildPdfDocumentModel.ts` |
@@ -151,7 +150,7 @@
 - メンバー管理: 登録、編集、非表示、一覧表示、99 人上限、アイウエオ順。
 - 参加者選択: メンバー選択、登録ユーザー向けゲスト人数入力、Guest 人数入力、男女別人数集計、30 人上限。
 - 対戦表作成: 対戦モード、コート数減算確認、API proxy、結果表示。
-- PDF: ログインユーザー向け PDF、Guest 向け PDF、日本語表示、ファイル名。
+- PDF: ログインユーザー/Guest 共通 PDF、日本語表示、ファイル名。
 
 ### 6.2 非機能観点
 
@@ -194,7 +193,7 @@
 | N-009 | 対戦表 | 通常、同性対決優先、混合対決優先で生成できる | 対戦モードが API へ反映されること |
 | N-010 | コート | 過剰なコート数で確認ダイアログを OK すると減算後の面数で生成される | 使用可能コート数への補正が成立すること |
 | N-011 | PDF | ログインユーザーで PDF を作成できる | ニックネーム表示 PDF が成立すること |
-| N-012 | PDF | Guest で PDF を作成できる | Guest 向け表形式 PDF が成立すること |
+| N-012 | PDF | Guest で PDF を作成できる | 通常ログイン時と同じPDFフォーマットが成立すること |
 
 ### 6.6 異常系
 
