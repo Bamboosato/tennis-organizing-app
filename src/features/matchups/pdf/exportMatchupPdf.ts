@@ -788,7 +788,7 @@ export async function exportGuestMatchupPdf(result: PdfMatchupResult) {
           return;
         }
 
-        hookData.cell.styles.font = "helvetica";
+        hookData.cell.styles.font = PDF_FONT_FAMILY;
         hookData.cell.styles.fontStyle = "bold";
         hookData.cell.styles.fontSize =
           model.typography.tableBodyFontSize +
@@ -833,7 +833,7 @@ export async function exportGuestMatchupPdf(result: PdfMatchupResult) {
         const firstBaselineY =
           hookData.cell.y + (hookData.cell.height - totalTextHeight) / 2 + fontSize * 0.9;
 
-        doc.setFont("helvetica", "bold");
+        doc.setFont(PDF_FONT_FAMILY, "bold");
         doc.setFontSize(fontSize);
         doc.setTextColor(...MATCHUP_APP_EMPHASIS_TEXT_COLOR);
         doc.text(lines[0], hookData.cell.x + hookData.cell.width / 2, firstBaselineY, {
