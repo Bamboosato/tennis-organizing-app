@@ -62,7 +62,7 @@
 | 登録メンバー選択 | active メンバーから参加者を仮選択し、OK で確定 | `src/app/page.tsx` |
 | 登録ユーザー向けゲスト人数入力 | 参加メンバー選択内で女性/男性のゲスト人数を仮入力し、OK で確定 | `src/app/page.tsx`, `src/features/guests/buildGuestParticipants.ts` |
 | 選択上限 | 登録メンバーとゲスト人数の合計が 30 人超過時は確定不可 | `src/app/page.tsx` |
-| SUMMARY 表示 | ログインユーザーでは参加者数にゲスト人数の内訳を表示 | `src/app/page.tsx` |
+| SUMMARY 表示 | 条件概要を表示し、ゲストがいる場合のみ2行目にゲスト番号内訳を表示 | `src/app/page.tsx` |
 | 全選択 / 選択解除 | 参加者選択プルダウン内で一括操作 | `src/app/page.tsx` |
 | 登録順 / アイウエオ順 | メンバー表示順を切替 | `src/app/page.tsx`, `src/features/members/sortKeyKana.ts` |
 | 男女別人数集計 | 選択中メンバーまたは Guest 入力から女性/男性数を表示 | `src/app/page.tsx` |

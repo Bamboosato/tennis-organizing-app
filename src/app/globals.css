@@ -587,6 +587,14 @@ h2 {
   line-height: 1.6;
 }
 
+.numbering-summary-guest-breakdown {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
 .numbering-summary-action {
   flex: 0 0 auto;
 }
