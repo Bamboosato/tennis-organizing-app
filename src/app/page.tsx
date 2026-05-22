@@ -723,7 +723,7 @@ export default function Home() {
             onMemberSelectionOpen={openMemberSelection}
             onMatchupModeChange={setMatchupMode}
             onMatchupCreate={handleCreateMatchup}
-            onPdfCreate={(result, options) => exportPdf(result, options)}
+            onPdfCreate={exportPdf}
             onRoundCountChange={setRoundCount}
             onSelectedMembersClear={clearDraftMemberSelection}
             onSelectedMembersSelectAll={selectAllDraftMembers}
@@ -951,7 +951,7 @@ function HomeScreen(props: {
   onMemberSelectionOpen: () => void;
   onMatchupModeChange: (value: MatchupMode) => void;
   onMatchupCreate: () => void;
-  onPdfCreate: (result: MatchupResult, options?: { isGuest?: boolean }) => Promise<void>;
+  onPdfCreate: (result: MatchupResult) => Promise<void>;
   onRoundCountChange: (value: string) => void;
   onSelectedMembersClear: () => void;
   onSelectedMembersSelectAll: () => void;
@@ -1259,7 +1259,7 @@ function CourtReductionDialog(props: {
 function MatchupResultPanel(props: {
   isExportingPdf: boolean;
   isGuest: boolean;
-  onPdfCreate: (result: MatchupResult, options?: { isGuest?: boolean }) => Promise<void>;
+  onPdfCreate: (result: MatchupResult) => Promise<void>;
   pdfErrorMessage: string | null;
   result: MatchupResult;
 }) {
@@ -1297,7 +1297,7 @@ function MatchupResultPanel(props: {
             disabled={props.isExportingPdf}
             title="現在の対戦表をPDFファイルとして出力します。"
             type="button"
-            onClick={() => void props.onPdfCreate(props.result, { isGuest: props.isGuest })}
+            onClick={() => void props.onPdfCreate(props.result)}
           >
             <FileDown size={18} />
             {props.isExportingPdf ? "PDF出力中..." : "PDF作成"}
