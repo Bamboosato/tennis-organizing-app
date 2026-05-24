@@ -253,6 +253,89 @@ h2 {
   padding: 10px 12px;
 }
 
+.count-stepper-field {
+  display: grid;
+  gap: 7px;
+}
+
+.count-stepper-field label {
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
+.count-stepper-control {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: #fff;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.count-stepper-control:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.14);
+}
+
+.field .count-stepper-control input,
+.count-stepper-control input {
+  min-width: 0;
+  width: 100%;
+  min-height: 42px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  padding: 0 8px;
+  text-align: center;
+  outline: none;
+}
+
+.count-stepper-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  border: 0;
+  background: transparent;
+  color: var(--primary-dark);
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease,
+    opacity 0.16s ease;
+}
+
+.count-stepper-button:first-child {
+  border-right: 1px solid var(--border);
+}
+
+.count-stepper-button:last-child {
+  border-left: 1px solid var(--border);
+}
+
+.count-stepper-button:hover:not(:disabled) {
+  background: var(--surface-blue);
+  color: var(--primary);
+}
+
+.count-stepper-button:disabled,
+.count-stepper-control input:disabled {
+  cursor: not-allowed;
+  color: var(--muted);
+  opacity: 0.5;
+}
+
+.count-stepper-control-disabled {
+  background: #f8fafc;
+}
+
 .field textarea {
   min-height: 86px;
   resize: vertical;
@@ -490,9 +573,14 @@ h2 {
 
 .condition-grid {
   display: grid;
-  grid-template-columns: minmax(280px, 1fr) auto 108px 128px;
+  grid-template-columns: minmax(240px, 1fr) minmax(300px, auto) minmax(148px, 160px) minmax(148px, 172px);
   gap: 14px;
   align-items: end;
+}
+
+.condition-field,
+.condition-member-field {
+  min-width: 0;
 }
 
 .condition-field-event {
@@ -516,6 +604,11 @@ h2 {
   align-items: center;
 }
 
+.member-select-summary .condition-summary {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+}
+
 .member-select-button {
   flex: 0 0 auto;
   min-width: 138px;
@@ -528,8 +621,8 @@ h2 {
   position: relative;
 }
 
-.condition-field-narrow input {
-  width: 108px;
+.condition-field-narrow .count-stepper-control {
+  width: 100%;
 }
 
 .condition-summary div,
@@ -681,6 +774,11 @@ h2 {
   font-size: 0.86rem;
   font-weight: 800;
   white-space: nowrap;
+}
+
+.result-seed-row {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .round-list {
@@ -1148,6 +1246,17 @@ h2 {
   background: linear-gradient(180deg, #eff6ff, #ffffff);
 }
 
+@media (max-width: 1120px) {
+  .condition-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .condition-field-event,
+  .condition-member-field {
+    grid-column: span 2;
+  }
+}
+
 @media (max-width: 860px) {
   .app-shell {
     padding: 18px;
@@ -1190,6 +1299,11 @@ h2 {
 
   .condition-field-narrow input {
     width: 100%;
+  }
+
+  .condition-field-event,
+  .condition-member-field {
+    grid-column: span 1;
   }
 
   .condition-field-wide {
@@ -1239,14 +1353,23 @@ h2 {
     width: min(376px, calc(100vw - 36px));
   }
 
-  .result-heading,
   .participant-dropdown-header {
     align-items: stretch;
     flex-direction: column;
   }
 
+  .result-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .result-heading h2 {
+    overflow-wrap: anywhere;
+  }
+
   .result-actions {
-    justify-content: flex-start;
+    justify-content: flex-end;
   }
 
   .court-card-grid {

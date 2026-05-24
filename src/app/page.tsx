@@ -12,8 +12,10 @@ import {
   LogIn,
   LogOut,
   Mail,
+  Minus,
   Plus,
   Save,
+  Swords,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -41,6 +43,12 @@ type SortMode = "registered" | "kana";
 
 const APP_COPYRIGHT_YEAR = 2026;
 const APP_VERSION = packageJson.version;
+const PARTICIPANT_COUNT_MAX = 30;
+const GENDER_COUNT_MIN = 0;
+const COURT_COUNT_MIN = 1;
+const COURT_COUNT_MAX = 8;
+const ROUND_COUNT_MIN = 1;
+const ROUND_COUNT_MAX = 20;
 type MatchupParticipant = {
   id: string;
   name: string;
@@ -1142,27 +1150,37 @@ function HomeScreen(props: {
           </div>
 
           <div className="field condition-field condition-field-narrow">
-            <label htmlFor="court-count">コート数</label>
-            <input
-              id="court-count"
-              inputMode="numeric"
-              min={1}
-              onChange={(event) => props.onCourtCountChange(event.target.value)}
-              pattern="[0-9]*"
-              type="text"
+            <CountStepperField
+              label="コート数"
               value={props.courtCount}
+              numericValue={parsedCourtCount ?? 0}
+              min={COURT_COUNT_MIN}
+              max={COURT_COUNT_MAX}
+              inputTestId="court-count-input"
+              decrementTestId="court-count-decrement"
+              incrementTestId="court-count-increment"
+              decrementLabel="コート数を1面減らす"
+              incrementLabel="コート数を1面増やす"
+              onChange={props.onCourtCountChange}
+              onCommit={() => props.onCourtCountChange(commitCountInput(props.courtCount, COURT_COUNT_MIN, COURT_COUNT_MAX))}
+              onStep={(delta) => props.onCourtCountChange(stepCountInput(props.courtCount, COURT_COUNT_MIN, COURT_COUNT_MAX, delta))}
             />
           </div>
           <div className="field condition-field">
-            <label htmlFor="round-count">実施回数</label>
-            <input
-              id="round-count"
-              inputMode="numeric"
-              min={1}
-              onChange={(event) => props.onRoundCountChange(event.target.value)}
-              pattern="[0-9]*"
-              type="text"
+            <CountStepperField
+              label="実施回数"
               value={props.roundCount}
+              numericValue={parsedRoundCount ?? 0}
+              min={ROUND_COUNT_MIN}
+              max={ROUND_COUNT_MAX}
+              inputTestId="round-count-input"
+              decrementTestId="round-count-decrement"
+              incrementTestId="round-count-increment"
+              decrementLabel="実施回数を1回減らす"
+              incrementLabel="実施回数を1回増やす"
+              onChange={props.onRoundCountChange}
+              onCommit={() => props.onRoundCountChange(commitCountInput(props.roundCount, ROUND_COUNT_MIN, ROUND_COUNT_MAX))}
+              onStep={(delta) => props.onRoundCountChange(stepCountInput(props.roundCount, ROUND_COUNT_MIN, ROUND_COUNT_MAX, delta))}
             />
           </div>
         </div>
@@ -1189,6 +1207,7 @@ function HomeScreen(props: {
               type="button"
               onClick={props.onMatchupCreate}
             >
+              <Swords size={18} />
               {props.isMatchupGenerating ? "作成中..." : "対戦表作成"}
             </button>
           </span>
@@ -1302,7 +1321,6 @@ function MatchupResultPanel(props: {
             <FileDown size={18} />
             {props.isExportingPdf ? "PDF出力中..." : "PDF作成"}
           </button>
-          <div className="seed-pill">seed {props.result.seed}</div>
         </div>
       </div>
       {props.pdfErrorMessage ? <p className="error-message">{props.pdfErrorMessage}</p> : null}
@@ -1358,7 +1376,96 @@ function MatchupResultPanel(props: {
           );
         })}
       </div>
+      <div className="result-seed-row">
+        <div className="seed-pill">seed {props.result.seed}</div>
+      </div>
     </section>
+  );
+}
+
+type CountStepperFieldProps = {
+  label: string;
+  value: string;
+  numericValue: number;
+  min: number;
+  max: number;
+  inputTestId: string;
+  decrementTestId: string;
+  incrementTestId: string;
+  decrementLabel: string;
+  incrementLabel: string;
+  disabled?: boolean;
+  onChange: (value: string) => void;
+  onCommit: () => void;
+  onStep: (delta: number) => void;
+};
+
+function CountStepperField({
+  label,
+  value,
+  numericValue,
+  min,
+  max,
+  inputTestId,
+  decrementTestId,
+  incrementTestId,
+  decrementLabel,
+  incrementLabel,
+  disabled = false,
+  onChange,
+  onCommit,
+  onStep,
+}: CountStepperFieldProps) {
+  const inputId = `${inputTestId}-field`;
+  const decrementDisabled = disabled || numericValue <= min;
+  const incrementDisabled = disabled || numericValue >= max;
+
+  return (
+    <div className="count-stepper-field">
+      <label htmlFor={inputId}>{label}</label>
+      <div className={`count-stepper-control ${disabled ? "count-stepper-control-disabled" : ""}`}>
+        <button
+          aria-label={decrementLabel}
+          className="count-stepper-button"
+          data-testid={decrementTestId}
+          disabled={decrementDisabled}
+          title={decrementLabel}
+          type="button"
+          onClick={() => onStep(-1)}
+        >
+          <Minus aria-hidden="true" size={18} />
+        </button>
+        <input
+          data-testid={inputTestId}
+          disabled={disabled}
+          id={inputId}
+          inputMode="numeric"
+          max={max}
+          min={min}
+          pattern="[0-9]*"
+          type="text"
+          value={value}
+          onBlur={onCommit}
+          onChange={(event) => onChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              onCommit();
+            }
+          }}
+        />
+        <button
+          aria-label={incrementLabel}
+          className="count-stepper-button"
+          data-testid={incrementTestId}
+          disabled={incrementDisabled}
+          title={incrementLabel}
+          type="button"
+          onClick={() => onStep(1)}
+        >
+          <Plus aria-hidden="true" size={18} />
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -1371,6 +1478,8 @@ function GuestParticipantCountDropdown(props: {
   onMaleCountChange: (value: string) => void;
 }) {
   const selectedCount = toDisplayCount(props.femaleCount) + toDisplayCount(props.maleCount);
+  const femaleMax = Math.max(GENDER_COUNT_MIN, PARTICIPANT_COUNT_MAX - toDisplayCount(props.maleCount));
+  const maleMax = Math.max(GENDER_COUNT_MIN, PARTICIPANT_COUNT_MAX - toDisplayCount(props.femaleCount));
 
   return (
     <section className="participant-selection-dropdown participant-count-dropdown">
@@ -1383,27 +1492,37 @@ function GuestParticipantCountDropdown(props: {
       <div className="participant-dropdown-body">
         <div className="guest-count-grid">
           <div className="field">
-            <label htmlFor="guest-female-count">女性人数</label>
-            <input
-              id="guest-female-count"
-              inputMode="numeric"
-              min={0}
-              onChange={(event) => props.onFemaleCountChange(event.target.value)}
-              pattern="[0-9]*"
-              type="text"
+            <CountStepperField
+              label="女性人数"
               value={props.femaleCount}
+              numericValue={toDisplayCount(props.femaleCount)}
+              min={GENDER_COUNT_MIN}
+              max={femaleMax}
+              inputTestId="guest-female-count-input"
+              decrementTestId="guest-female-count-decrement"
+              incrementTestId="guest-female-count-increment"
+              decrementLabel="女性人数を1人減らす"
+              incrementLabel="女性人数を1人増やす"
+              onChange={props.onFemaleCountChange}
+              onCommit={() => props.onFemaleCountChange(commitCountInput(props.femaleCount, GENDER_COUNT_MIN, femaleMax))}
+              onStep={(delta) => props.onFemaleCountChange(stepCountInput(props.femaleCount, GENDER_COUNT_MIN, femaleMax, delta))}
             />
           </div>
           <div className="field">
-            <label htmlFor="guest-male-count">男性人数</label>
-            <input
-              id="guest-male-count"
-              inputMode="numeric"
-              min={0}
-              onChange={(event) => props.onMaleCountChange(event.target.value)}
-              pattern="[0-9]*"
-              type="text"
+            <CountStepperField
+              label="男性人数"
               value={props.maleCount}
+              numericValue={toDisplayCount(props.maleCount)}
+              min={GENDER_COUNT_MIN}
+              max={maleMax}
+              inputTestId="guest-male-count-input"
+              decrementTestId="guest-male-count-decrement"
+              incrementTestId="guest-male-count-increment"
+              decrementLabel="男性人数を1人減らす"
+              incrementLabel="男性人数を1人増やす"
+              onChange={props.onMaleCountChange}
+              onCommit={() => props.onMaleCountChange(commitCountInput(props.maleCount, GENDER_COUNT_MIN, maleMax))}
+              onStep={(delta) => props.onMaleCountChange(stepCountInput(props.maleCount, GENDER_COUNT_MIN, maleMax, delta))}
             />
           </div>
         </div>
@@ -1439,6 +1558,14 @@ function ParticipantSelectionDropdown(props: {
   const selectedCount = props.selectedMemberIds.length;
   const guestCount = toDisplayCount(props.guestFemaleCount) + toDisplayCount(props.guestMaleCount);
   const totalSelectedCount = selectedCount + guestCount;
+  const guestFemaleMax = Math.max(
+    GENDER_COUNT_MIN,
+    PARTICIPANT_COUNT_MAX - selectedCount - toDisplayCount(props.guestMaleCount),
+  );
+  const guestMaleMax = Math.max(
+    GENDER_COUNT_MIN,
+    PARTICIPANT_COUNT_MAX - selectedCount - toDisplayCount(props.guestFemaleCount),
+  );
   const selectableMemberIds = props.members.map((member) => member.id);
   const allSelectableMembersSelected =
     selectableMemberIds.length > 0 && selectableMemberIds.every((memberId) => props.selectedMemberIds.includes(memberId));
@@ -1454,27 +1581,45 @@ function ParticipantSelectionDropdown(props: {
           <div className="participant-guest-count-title">ゲスト人数</div>
           <div className="guest-count-grid participant-guest-count-grid">
             <div className="field">
-              <label htmlFor="member-guest-female-count">女性</label>
-              <input
-                id="member-guest-female-count"
-                inputMode="numeric"
-                min={0}
-                onChange={(event) => props.onGuestFemaleCountChange(event.target.value)}
-                pattern="[0-9]*"
-                type="text"
+              <CountStepperField
+                label="女性"
                 value={props.guestFemaleCount}
+                numericValue={toDisplayCount(props.guestFemaleCount)}
+                min={GENDER_COUNT_MIN}
+                max={guestFemaleMax}
+                inputTestId="member-guest-female-count-input"
+                decrementTestId="member-guest-female-count-decrement"
+                incrementTestId="member-guest-female-count-increment"
+                decrementLabel="追加女性を1人減らす"
+                incrementLabel="追加女性を1人増やす"
+                onChange={props.onGuestFemaleCountChange}
+                onCommit={() =>
+                  props.onGuestFemaleCountChange(commitCountInput(props.guestFemaleCount, GENDER_COUNT_MIN, guestFemaleMax))
+                }
+                onStep={(delta) =>
+                  props.onGuestFemaleCountChange(stepCountInput(props.guestFemaleCount, GENDER_COUNT_MIN, guestFemaleMax, delta))
+                }
               />
             </div>
             <div className="field">
-              <label htmlFor="member-guest-male-count">男性</label>
-              <input
-                id="member-guest-male-count"
-                inputMode="numeric"
-                min={0}
-                onChange={(event) => props.onGuestMaleCountChange(event.target.value)}
-                pattern="[0-9]*"
-                type="text"
+              <CountStepperField
+                label="男性"
                 value={props.guestMaleCount}
+                numericValue={toDisplayCount(props.guestMaleCount)}
+                min={GENDER_COUNT_MIN}
+                max={guestMaleMax}
+                inputTestId="member-guest-male-count-input"
+                decrementTestId="member-guest-male-count-decrement"
+                incrementTestId="member-guest-male-count-increment"
+                decrementLabel="追加男性を1人減らす"
+                incrementLabel="追加男性を1人増やす"
+                onChange={props.onGuestMaleCountChange}
+                onCommit={() =>
+                  props.onGuestMaleCountChange(commitCountInput(props.guestMaleCount, GENDER_COUNT_MIN, guestMaleMax))
+                }
+                onStep={(delta) =>
+                  props.onGuestMaleCountChange(stepCountInput(props.guestMaleCount, GENDER_COUNT_MIN, guestMaleMax, delta))
+                }
               />
             </div>
           </div>
@@ -1691,6 +1836,27 @@ function MemberFormPanel(props: {
       </div>
     </section>
   );
+}
+
+function clampCount(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function commitCountInput(value: string, min: number, max: number) {
+  const parsed = parseCount(value);
+
+  if (parsed === null) {
+    return String(min);
+  }
+
+  return String(clampCount(parsed, min, max));
+}
+
+function stepCountInput(value: string, min: number, max: number, delta: number) {
+  const parsed = parseCount(value);
+  const base = parsed === null ? min - delta : parsed;
+
+  return String(clampCount(base + delta, min, max));
 }
 
 function toDisplayCount(value: string) {
