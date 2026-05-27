@@ -4,8 +4,12 @@ const STATIC_CACHE_PREFIX = "tennis-organizing-static-";
 const STATIC_CACHE_POLICY_VERSION = "v1";
 const STATIC_CACHE_NAME = `${STATIC_CACHE_PREFIX}${STATIC_CACHE_POLICY_VERSION}`;
 
-const PRECACHE_URLS = ["/icons/icon-192.png", "/icons/icon-512.png"];
-const CACHEABLE_PATH_PREFIXES = ["/_next/static/", "/icons/", "/fonts/"];
+const PRECACHE_URLS = [
+  "/brand/logo-bamboosato.webp?brandv=bamboosato-v1",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
+];
+const CACHEABLE_PATH_PREFIXES = ["/_next/static/", "/brand/", "/icons/", "/fonts/"];
 
 function isCacheableStaticRequest(request) {
   if (request.method !== "GET") {
