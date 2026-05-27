@@ -11,6 +11,7 @@
 - [ver1.00 リリース対象棚卸し](docs/release-v1.00-scope.md)
 - [Firebase 本番設定チェックリスト](docs/firebase-production-setup.md)
 - [Vercel 本番設定チェックリスト](docs/vercel-production-setup.md)
+- [PWA Service Worker 静的アセットキャッシュ設計](docs/pwa-service-worker-design.md)
 - [PDFレイアウトサンプル 2コート](docs/pdf-layout-portrait-2-courts.png)
 - [PDFレイアウトサンプル 3コート](docs/pdf-layout-portrait-3-courts.png)
 
@@ -42,8 +43,14 @@ http://localhost:3000
 
 ```powershell
 npm run lint
+npx --no-install tsc --noEmit
+npm test
 npm run build
+npm run test:e2e
+npm audit
 ```
+
+`npm run test:e2e` は本番ビルド後の `next start` に対して Playwright を実行します。ローカルで単独実行する場合は、先に `npm run build` を実行してください。
 
 ## Firebase Rules
 
@@ -111,11 +118,11 @@ Vercel で公開します。運用は `tennis-matchup-app` と同様に、GitHub
 ```powershell
 npm run lint
 npx --no-install tsc --noEmit
+npm test
 npm run build
+npm run test:e2e
 npm audit
 ```
-
-現状は `test` script が未定義のため、ver1.00 では上記コマンドと手動スモーク確認をリリースゲートにします。
 
 主な手動スモーク:
 
