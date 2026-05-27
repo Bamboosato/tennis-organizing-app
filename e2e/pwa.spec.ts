@@ -26,6 +26,7 @@ test("serves the service worker with update-safe headers", async ({ request }) =
 
   const serviceWorker = await response.text();
   expect(serviceWorker).toContain("/_next/static/");
+  expect(serviceWorker).toContain("/brand/");
   expect(serviceWorker).toContain("/icons/");
   expect(serviceWorker).toContain("/fonts/");
   expect(serviceWorker).toContain('STATIC_CACHE_POLICY_VERSION = "v1"');
@@ -74,8 +75,10 @@ test("caches static assets without caching API responses", async ({ page }) => {
     }
 
     const staticUrl = `/icons/icon-192.png?sw-test=${Date.now()}`;
+    const brandLogoUrl = `/brand/logo-bamboosato.webp?sw-test=${Date.now()}`;
     const apiUrl = `/api/matchups/generate?sw-test=${Date.now()}`;
     await fetch(staticUrl);
+    await fetch(brandLogoUrl);
     await fetch(apiUrl).catch(() => undefined);
 
     const cacheNames = await caches.keys();
@@ -88,6 +91,9 @@ test("caches static assets without caching API responses", async ({ page }) => {
 
     const staticAssetCached = Boolean(
       staticCache && (await staticCache.match(staticUrl)),
+    );
+    const brandLogoCached = Boolean(
+      staticCache && (await staticCache.match(brandLogoUrl)),
     );
     const apiResponseCached = Boolean(
       staticCache && (await staticCache.match(apiUrl)),
@@ -103,6 +109,7 @@ test("caches static assets without caching API responses", async ({ page }) => {
     return {
       supported: true,
       staticAssetCached,
+      brandLogoCached,
       apiResponseCached,
       staticCacheName,
     };
@@ -110,8 +117,48 @@ test("caches static assets without caching API responses", async ({ page }) => {
 
   expect(result.supported).toBe(true);
   expect(result.staticAssetCached).toBe(true);
+  expect(result.brandLogoCached).toBe(true);
   expect(result.apiResponseCached).toBe(false);
   expect(result.staticCacheName).toContain("tennis-organizing-static-");
+});
+
+test("shows the app splash once in standalone PWA mode", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: (query: string) => ({
+        matches: query === "(display-mode: standalone)",
+        media: query,
+        onchange: null,
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+        addListener: () => undefined,
+        removeListener: () => undefined,
+        dispatchEvent: () => false,
+      }),
+    });
+  });
+
+  await page.goto("/");
+
+  const splash = page.getByTestId("pwa-splash-screen");
+  await expect(splash).toBeVisible();
+  await expect(page.getByTestId("pwa-splash-logo")).toHaveAttribute(
+    "src",
+    "/brand/logo-bamboosato.webp?brandv=bamboosato-v1",
+  );
+  await expect(splash).toBeHidden({ timeout: 5_000 });
+
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        window.sessionStorage.getItem("tennis-organizing-pwa-splash-shown-v1"),
+      ),
+    )
+    .toBe("shown");
+
+  await page.reload();
+  await expect(page.getByTestId("pwa-splash-screen")).toHaveCount(0);
 });
 
 test("keeps app icon URLs stable across app updates", async ({ page }) => {
