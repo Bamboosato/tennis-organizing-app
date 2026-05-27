@@ -1,16 +1,38 @@
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
+import { ServiceWorkerRegistration } from "@/components/pwa/ServiceWorkerRegistration";
+import { APP_ICON_192_SRC, APP_ICON_512_SRC } from "@/lib/constants/assets";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "tennis-organizing-app",
+  title: "テニスサークル運営サポート",
   description: "テニス練習会向けのメンバー管理と対戦表作成アプリ",
+  applicationName: "テニスサークル運営サポート",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "テニスサークル運営サポート",
+  },
   icons: {
     icon: [
-      { url: "/favicon.ico?v=20260512-crop", sizes: "any" },
-      { url: "/app-icon.png?v=20260512-crop", type: "image/png" },
+      {
+        url: APP_ICON_192_SRC,
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        url: APP_ICON_512_SRC,
+        sizes: "512x512",
+        type: "image/png",
+      },
     ],
-    apple: "/app-icon.png?v=20260512-crop",
+    apple: [
+      {
+        url: APP_ICON_192_SRC,
+        sizes: "192x192",
+        type: "image/png",
+      },
+    ],
   },
 };
 
@@ -19,6 +41,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="ja">
       <body>
         {children}
+        <ServiceWorkerRegistration />
         <Analytics />
       </body>
     </html>

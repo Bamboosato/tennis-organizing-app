@@ -36,6 +36,7 @@ import { formatParticipantSummaryLabel } from "@/features/matchups/formatPartici
 import { addMember, deactivateMember, subscribeMembers, updateMember } from "@/features/members/memberRepository";
 import { emptyMemberForm, type Member, type MemberFormInput } from "@/features/members/model";
 import { useMatchupPdfExport } from "@/hooks/useMatchupPdfExport";
+import { APP_ICON_192_SRC } from "@/lib/constants/assets";
 
 type MatchupMode = "standard" | "sameGenderPriority" | "mixedDoublesPriority";
 type Screen = "login" | "passwordSetup" | "home" | "memberManagement";
@@ -620,7 +621,7 @@ export default function Home() {
                 alt=""
                 className="brand-mark-image"
                 height={48}
-                src="/app-icon.png?v=20260512-crop"
+                src={APP_ICON_192_SRC}
                 unoptimized
                 width={48}
                 onError={(event) => {
