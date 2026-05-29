@@ -265,7 +265,7 @@ function playerCell(players: string[]) {
 }
 
 function emptyPlayerCells() {
-  return [tableCell("", { minCellHeight: PLAYER_ROW_HEIGHT }), tableCell("", { minCellHeight: PLAYER_ROW_HEIGHT })];
+  return [tableCell("", { colSpan: 2, minCellHeight: PLAYER_ROW_HEIGHT })];
 }
 
 function restHeaderCell(teamColumnCount: number): CellInput {
@@ -327,6 +327,10 @@ function courtPlayerCells(court: PdfCourtBlock | null) {
     return emptyPlayerCells();
   }
 
+  if (court.singlesMatchLabel) {
+    return [tableCell(court.singlesMatchLabel, { colSpan: 2, minCellHeight: PLAYER_ROW_HEIGHT })];
+  }
+
   return [playerCell(court.pairAPlayers), playerCell(court.pairBPlayers)];
 }
 
@@ -365,6 +369,20 @@ function buildRoundRows(round: PdfRoundBlock, teamColumnCount: number, includeSp
   return rows;
 }
 
+function buildTableHead(courtSlotCount: number, matchFormat: PdfMatchupResult["conditions"]["matchFormat"]): CellInput[] {
+  const headCells: CellInput[] = ["R"];
+
+  for (let index = 0; index < courtSlotCount; index += 1) {
+    if (matchFormat === "singles") {
+      headCells.push({ content: "Match", colSpan: 2 });
+    } else {
+      headCells.push("A", "B");
+    }
+  }
+
+  return headCells;
+}
+
 export async function exportMatchupPdf(result: PdfMatchupResult) {
   const model = buildPdfDocumentModel(result);
   const doc = new jsPDF({
@@ -401,7 +419,7 @@ export async function exportMatchupPdf(result: PdfMatchupResult) {
       },
       theme: "grid",
       tableWidth: pageWidth(doc) - PAGE_MARGIN * 2,
-      head: [["R", ...Array.from({ length: courtSlotCount }, () => ["A", "B"]).flat()]],
+      head: [buildTableHead(courtSlotCount, model.matchFormat)],
       body: bodyRows,
       styles: {
         font: PDF_FONT_FAMILY,

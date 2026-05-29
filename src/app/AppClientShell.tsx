@@ -44,6 +44,7 @@ import { useMatchupPdfExport } from "@/hooks/useMatchupPdfExport";
 import { APP_ICON_192_SRC } from "@/lib/constants/assets";
 
 type MatchupMode = "standard" | "sameGenderPriority" | "mixedDoublesPriority";
+type MatchFormat = "doubles" | "singles";
 type AuthScreen = "login" | "passwordSetup";
 type AppRoute = "home" | "members" | "doubles" | "singles" | "unknown";
 type SortMode = "registered" | "kana";
@@ -56,6 +57,34 @@ const COURT_COUNT_MIN = 1;
 const COURT_COUNT_MAX = 8;
 const ROUND_COUNT_MIN = 1;
 const ROUND_COUNT_MAX = 20;
+const MATCH_FORMAT_CONFIG: Record<
+  MatchFormat,
+  {
+    conditionIntro: string;
+    defaultCourtCount: string;
+    defaultGuestFemaleCount: string;
+    defaultGuestMaleCount: string;
+    participantMin: number;
+    playersPerCourt: 2 | 4;
+  }
+> = {
+  doubles: {
+    conditionIntro: "メンバー選択（選択or人数入力）、コート数、実施回数、対戦モードを指定します。",
+    defaultCourtCount: "2",
+    defaultGuestFemaleCount: "4",
+    defaultGuestMaleCount: "4",
+    participantMin: 4,
+    playersPerCourt: 4,
+  },
+  singles: {
+    conditionIntro: "メンバー選択（選択or人数入力）、コート数、実施回数を指定します。",
+    defaultCourtCount: "2",
+    defaultGuestFemaleCount: "4",
+    defaultGuestMaleCount: "4",
+    participantMin: 2,
+    playersPerCourt: 2,
+  },
+};
 type MatchupParticipant = {
   id: string;
   name: string;
@@ -66,10 +95,15 @@ type MatchupPair = {
   player1Id: string;
   player2Id: string;
 };
+type MatchupSinglesMatch = {
+  player1Id: string;
+  player2Id: string;
+};
 type MatchupCourt = {
   courtNumber: number;
   pairA?: MatchupPair | null;
   pairB?: MatchupPair | null;
+  singlesMatch?: MatchupSinglesMatch | null;
   isUnused?: boolean;
 };
 type MatchupRound = {
@@ -80,16 +114,19 @@ type MatchupRound = {
 type MatchupResult = {
   conditions: {
     eventName?: string;
+    matchFormat?: MatchFormat;
     matchupMode?: MatchupMode;
     participants: MatchupParticipant[];
     courtCount: number;
     roundCount: number;
+    playersPerCourt?: 2 | 4;
   };
   rounds: MatchupRound[];
   seed: number;
 };
 type GenerateMatchupPayload = {
   eventName: string;
+  matchFormat: MatchFormat;
   matchupMode: MatchupMode;
   participantCount: number;
   participants: MatchupParticipant[];
@@ -101,6 +138,62 @@ type CourtReductionConfirmation = {
   requestedCourtCount: number;
   usableCourtCount: number;
 };
+type MatchupScreenState = {
+  courtCount: string;
+  courtReductionConfirmation: CourtReductionConfirmation | null;
+  draftGuestFemaleCount: string;
+  draftGuestMaleCount: string;
+  draftMemberGuestFemaleCount: string;
+  draftMemberGuestMaleCount: string;
+  draftSelectedMemberIds: string[];
+  eventName: string;
+  guestFemaleCount: string;
+  guestMaleCount: string;
+  isMatchupGenerating: boolean;
+  memberGuestFemaleCount: string;
+  memberGuestMaleCount: string;
+  memberSelectionError: string;
+  matchupError: string;
+  matchupMode: MatchupMode;
+  matchupResult: MatchupResult | null;
+  memberSelectionOpen: boolean;
+  roundCount: string;
+  selectedMemberIds: string[];
+};
+
+function createInitialMatchupScreenState(matchFormat: MatchFormat): MatchupScreenState {
+  const config = MATCH_FORMAT_CONFIG[matchFormat];
+
+  return {
+    courtCount: config.defaultCourtCount,
+    courtReductionConfirmation: null,
+    draftGuestFemaleCount: config.defaultGuestFemaleCount,
+    draftGuestMaleCount: config.defaultGuestMaleCount,
+    draftMemberGuestFemaleCount: "0",
+    draftMemberGuestMaleCount: "0",
+    draftSelectedMemberIds: [],
+    eventName: "週末テニス会",
+    guestFemaleCount: config.defaultGuestFemaleCount,
+    guestMaleCount: config.defaultGuestMaleCount,
+    isMatchupGenerating: false,
+    memberGuestFemaleCount: "0",
+    memberGuestMaleCount: "0",
+    memberSelectionError: "",
+    matchupError: "",
+    matchupMode: "standard",
+    matchupResult: null,
+    memberSelectionOpen: false,
+    roundCount: "4",
+    selectedMemberIds: [],
+  };
+}
+
+function createInitialMatchupStates(): Record<MatchFormat, MatchupScreenState> {
+  return {
+    doubles: createInitialMatchupScreenState("doubles"),
+    singles: createInitialMatchupScreenState("singles"),
+  };
+}
 
 function getAppRoute(pathname: string | null): AppRoute {
   switch (pathname) {
@@ -138,27 +231,10 @@ export function AppClientShell({ children }: { children: ReactNode }) {
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [memberError, setMemberError] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("registered");
-  const [eventName, setEventName] = useState("週末テニス会");
-  const [matchupMode, setMatchupMode] = useState<MatchupMode>("standard");
-  const [guestFemaleCount, setGuestFemaleCount] = useState("4");
-  const [guestMaleCount, setGuestMaleCount] = useState("4");
-  const [draftGuestFemaleCount, setDraftGuestFemaleCount] = useState("4");
-  const [draftGuestMaleCount, setDraftGuestMaleCount] = useState("4");
-  const [memberGuestFemaleCount, setMemberGuestFemaleCount] = useState("0");
-  const [memberGuestMaleCount, setMemberGuestMaleCount] = useState("0");
-  const [draftMemberGuestFemaleCount, setDraftMemberGuestFemaleCount] = useState("0");
-  const [draftMemberGuestMaleCount, setDraftMemberGuestMaleCount] = useState("0");
-  const [courtCount, setCourtCount] = useState("2");
-  const [roundCount, setRoundCount] = useState("4");
-  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
-  const [draftSelectedMemberIds, setDraftSelectedMemberIds] = useState<string[]>([]);
-  const [isMemberSelectionOpen, setIsMemberSelectionOpen] = useState(false);
-  const [memberSelectionError, setMemberSelectionError] = useState("");
-  const [matchupResult, setMatchupResult] = useState<MatchupResult | null>(null);
-  const [matchupError, setMatchupError] = useState("");
+  const [matchupStates, setMatchupStates] = useState<Record<MatchFormat, MatchupScreenState>>(
+    createInitialMatchupStates,
+  );
   const [isMatchupCompleteToastVisible, setIsMatchupCompleteToastVisible] = useState(false);
-  const [isMatchupGenerating, setIsMatchupGenerating] = useState(false);
-  const [courtReductionConfirmation, setCourtReductionConfirmation] = useState<CourtReductionConfirmation | null>(null);
   const { clearPdfError, exportPdf, isExportingPdf, pdfErrorMessage } = useMatchupPdfExport();
   const returningToLoginAfterRegistration = useRef(false);
 
@@ -223,20 +299,15 @@ export function AppClientShell({ children }: { children: ReactNode }) {
     };
   }, [isMatchupCompleteToastVisible]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [pathname]);
+
   const members = useMemo(
     () => (memberState.uid === user?.uid ? memberState.members : []),
     [memberState, user?.uid],
   );
   const activeMembers = useMemo(() => members.filter((member) => member.status === "active"), [members]);
-  const selectedMembers = useMemo(
-    () => activeMembers.filter((member) => selectedMemberIds.includes(member.id)),
-    [activeMembers, selectedMemberIds],
-  );
-  const selectedFemaleCount = useMemo(
-    () => selectedMembers.filter((member) => member.gender === "female").length,
-    [selectedMembers],
-  );
-  const selectedMaleCount = selectedMembers.length - selectedFemaleCount;
   const sortedMembers = useMemo(() => {
     return [...activeMembers].sort((left, right) => {
       if (sortMode === "registered") {
@@ -334,19 +405,8 @@ export function AppClientShell({ children }: { children: ReactNode }) {
     setMemberForm(emptyMemberForm);
     setEditingMemberId(null);
     setMemberError("");
-    setSelectedMemberIds([]);
-    setDraftSelectedMemberIds([]);
-    setMemberGuestFemaleCount("0");
-    setMemberGuestMaleCount("0");
-    setDraftMemberGuestFemaleCount("0");
-    setDraftMemberGuestMaleCount("0");
-    setIsMemberSelectionOpen(false);
-    setMemberSelectionError("");
-    setMatchupResult(null);
-    setMatchupError("");
+    setMatchupStates(createInitialMatchupStates());
     setIsMatchupCompleteToastVisible(false);
-    setIsMatchupGenerating(false);
-    setCourtReductionConfirmation(null);
     setPassword("");
     setAuthScreen("login");
   }
@@ -365,129 +425,184 @@ export function AppClientShell({ children }: { children: ReactNode }) {
     setMemberError("");
   }
 
-  function openMemberSelection() {
+  function updateMatchupState(
+    matchFormat: MatchFormat,
+    updater: (current: MatchupScreenState) => MatchupScreenState,
+  ) {
+    setMatchupStates((current) => ({
+      ...current,
+      [matchFormat]: updater(current[matchFormat]),
+    }));
+  }
+
+  function patchMatchupState(matchFormat: MatchFormat, patch: Partial<MatchupScreenState>) {
+    updateMatchupState(matchFormat, (current) => ({
+      ...current,
+      ...patch,
+    }));
+  }
+
+  function selectedMembersForState(state: MatchupScreenState) {
+    return activeMembers.filter((member) => state.selectedMemberIds.includes(member.id));
+  }
+
+  function openMemberSelection(matchFormat: MatchFormat) {
     if (!user) {
       return;
     }
 
+    const state = matchupStates[matchFormat];
+
     if (user.isAnonymous) {
-      setDraftGuestFemaleCount(guestFemaleCount);
-      setDraftGuestMaleCount(guestMaleCount);
-      setMemberSelectionError("");
-      setIsMemberSelectionOpen(true);
+      patchMatchupState(matchFormat, {
+        draftGuestFemaleCount: state.guestFemaleCount,
+        draftGuestMaleCount: state.guestMaleCount,
+        memberSelectionError: "",
+        memberSelectionOpen: true,
+      });
       return;
     }
 
     const activeMemberIds = new Set(activeMembers.map((member) => member.id));
 
-    setDraftSelectedMemberIds(selectedMemberIds.filter((memberId) => activeMemberIds.has(memberId)));
-    setDraftMemberGuestFemaleCount(memberGuestFemaleCount);
-    setDraftMemberGuestMaleCount(memberGuestMaleCount);
-    setMemberSelectionError("");
-    setIsMemberSelectionOpen(true);
-  }
-
-  function cancelMemberSelection() {
-    if (user?.isAnonymous) {
-      setDraftGuestFemaleCount(guestFemaleCount);
-      setDraftGuestMaleCount(guestMaleCount);
-    } else {
-      setDraftSelectedMemberIds(selectedMemberIds);
-      setDraftMemberGuestFemaleCount(memberGuestFemaleCount);
-      setDraftMemberGuestMaleCount(memberGuestMaleCount);
-    }
-
-    setIsMemberSelectionOpen(false);
-    setMemberSelectionError("");
-  }
-
-  function confirmMemberSelection() {
-    if (user?.isAnonymous) {
-      setGuestFemaleCount(draftGuestFemaleCount);
-      setGuestMaleCount(draftGuestMaleCount);
-    } else {
-      const draftGuestCount =
-        toDisplayCount(draftMemberGuestFemaleCount) + toDisplayCount(draftMemberGuestMaleCount);
-
-      if (draftSelectedMemberIds.length + draftGuestCount > 30) {
-        setMemberSelectionError("ゲスト含めて30人を超えています。");
-        return;
-      }
-
-      setSelectedMemberIds(draftSelectedMemberIds);
-      setMemberGuestFemaleCount(draftMemberGuestFemaleCount);
-      setMemberGuestMaleCount(draftMemberGuestMaleCount);
-    }
-
-    setIsMemberSelectionOpen(false);
-    setMemberSelectionError("");
-  }
-
-  function toggleDraftMemberSelection(memberId: string) {
-    setMemberSelectionError("");
-    setDraftSelectedMemberIds((current) => {
-      if (current.includes(memberId)) {
-        return current.filter((id) => id !== memberId);
-      }
-
-      return [...current, memberId];
+    patchMatchupState(matchFormat, {
+      draftSelectedMemberIds: state.selectedMemberIds.filter((memberId) => activeMemberIds.has(memberId)),
+      draftMemberGuestFemaleCount: state.memberGuestFemaleCount,
+      draftMemberGuestMaleCount: state.memberGuestMaleCount,
+      memberSelectionError: "",
+      memberSelectionOpen: true,
     });
   }
 
-  function clearDraftMemberSelection() {
-    setMemberSelectionError("");
-    setDraftSelectedMemberIds([]);
+  function cancelMemberSelection(matchFormat: MatchFormat) {
+    const state = matchupStates[matchFormat];
+
+    if (user?.isAnonymous) {
+      patchMatchupState(matchFormat, {
+        draftGuestFemaleCount: state.guestFemaleCount,
+        draftGuestMaleCount: state.guestMaleCount,
+        memberSelectionError: "",
+        memberSelectionOpen: false,
+      });
+    } else {
+      patchMatchupState(matchFormat, {
+        draftSelectedMemberIds: state.selectedMemberIds,
+        draftMemberGuestFemaleCount: state.memberGuestFemaleCount,
+        draftMemberGuestMaleCount: state.memberGuestMaleCount,
+        memberSelectionError: "",
+        memberSelectionOpen: false,
+      });
+    }
   }
 
-  function selectAllDraftMembers() {
-    setMemberSelectionError("");
-    setDraftSelectedMemberIds(sortedMembers.map((member) => member.id));
+  function confirmMemberSelection(matchFormat: MatchFormat) {
+    const state = matchupStates[matchFormat];
+
+    if (user?.isAnonymous) {
+      patchMatchupState(matchFormat, {
+        guestFemaleCount: state.draftGuestFemaleCount,
+        guestMaleCount: state.draftGuestMaleCount,
+        memberSelectionError: "",
+        memberSelectionOpen: false,
+      });
+    } else {
+      const draftGuestCount =
+        toDisplayCount(state.draftMemberGuestFemaleCount) + toDisplayCount(state.draftMemberGuestMaleCount);
+
+      if (state.draftSelectedMemberIds.length + draftGuestCount > PARTICIPANT_COUNT_MAX) {
+        patchMatchupState(matchFormat, { memberSelectionError: "ゲスト含めて30人を超えています。" });
+        return;
+      }
+
+      patchMatchupState(matchFormat, {
+        selectedMemberIds: state.draftSelectedMemberIds,
+        memberGuestFemaleCount: state.draftMemberGuestFemaleCount,
+        memberGuestMaleCount: state.draftMemberGuestMaleCount,
+        memberSelectionError: "",
+        memberSelectionOpen: false,
+      });
+    }
   }
 
-  function handleCreateMatchup() {
-    if (!user || isMatchupGenerating) {
+  function toggleDraftMemberSelection(matchFormat: MatchFormat, memberId: string) {
+    updateMatchupState(matchFormat, (current) => {
+      const draftSelectedMemberIds = current.draftSelectedMemberIds.includes(memberId)
+        ? current.draftSelectedMemberIds.filter((id) => id !== memberId)
+        : [...current.draftSelectedMemberIds, memberId];
+
+      return {
+        ...current,
+        draftSelectedMemberIds,
+        memberSelectionError: "",
+      };
+    });
+  }
+
+  function clearDraftMemberSelection(matchFormat: MatchFormat) {
+    patchMatchupState(matchFormat, {
+      draftSelectedMemberIds: [],
+      memberSelectionError: "",
+    });
+  }
+
+  function selectAllDraftMembers(matchFormat: MatchFormat) {
+    patchMatchupState(matchFormat, {
+      draftSelectedMemberIds: sortedMembers.map((member) => member.id),
+      memberSelectionError: "",
+    });
+  }
+
+  function handleCreateMatchup(matchFormat: MatchFormat) {
+    const state = matchupStates[matchFormat];
+    const formatConfig = MATCH_FORMAT_CONFIG[matchFormat];
+
+    if (!user || state.isMatchupGenerating) {
       return;
     }
 
     clearPdfError();
-    const parsedCourtCount = parseCount(courtCount);
-    const parsedRoundCount = parseCount(roundCount);
+    const parsedCourtCount = parseCount(state.courtCount);
+    const parsedRoundCount = parseCount(state.roundCount);
+    const selectedMembers = selectedMembersForState(state);
     const participants = user.isAnonymous
-      ? buildGuestParticipants(toDisplayCount(guestFemaleCount), toDisplayCount(guestMaleCount))
+      ? buildGuestParticipants(toDisplayCount(state.guestFemaleCount), toDisplayCount(state.guestMaleCount))
       : [
           ...selectedMembers.map((member) => ({
             id: member.id,
             name: member.nickname,
             gender: member.gender,
           })),
-          ...buildGuestParticipants(toDisplayCount(memberGuestFemaleCount), toDisplayCount(memberGuestMaleCount), {
+          ...buildGuestParticipants(toDisplayCount(state.memberGuestFemaleCount), toDisplayCount(state.memberGuestMaleCount), {
             idPrefix: "member-guest",
           }),
         ];
 
-    setMatchupError("");
-    setMatchupResult(null);
+    patchMatchupState(matchFormat, {
+      courtReductionConfirmation: null,
+      matchupError: "",
+      matchupResult: null,
+    });
     setIsMatchupCompleteToastVisible(false);
-    setCourtReductionConfirmation(null);
 
     if (
-      participants.length < 4 ||
-      participants.length > 30 ||
+      participants.length < formatConfig.participantMin ||
+      participants.length > PARTICIPANT_COUNT_MAX ||
       parsedCourtCount === null ||
-      parsedCourtCount < 1 ||
-      parsedCourtCount > 8 ||
+      parsedCourtCount < COURT_COUNT_MIN ||
+      parsedCourtCount > COURT_COUNT_MAX ||
       parsedRoundCount === null ||
-      parsedRoundCount < 1 ||
-      parsedRoundCount > 20
+      parsedRoundCount < ROUND_COUNT_MIN ||
+      parsedRoundCount > ROUND_COUNT_MAX
     ) {
-      setMatchupError("参加者数、コート数、実施回数を確認してください。");
+      patchMatchupState(matchFormat, { matchupError: "参加者数、コート数、実施回数を確認してください。" });
       return;
     }
 
-    const usableCourtCount = toUsableCourtCount(participants.length, parsedCourtCount);
+    const usableCourtCount = toUsableCourtCount(participants.length, parsedCourtCount, formatConfig.playersPerCourt);
     const payload: GenerateMatchupPayload = {
-      eventName,
-      matchupMode,
+      eventName: state.eventName,
+      matchFormat,
+      matchupMode: matchFormat === "doubles" ? state.matchupMode : "standard",
       participantCount: participants.length,
       participants,
       courtCount: usableCourtCount,
@@ -495,21 +610,22 @@ export function AppClientShell({ children }: { children: ReactNode }) {
     };
 
     if (parsedCourtCount > usableCourtCount) {
-      setCourtReductionConfirmation({
-        payload,
-        requestedCourtCount: parsedCourtCount,
-        usableCourtCount,
+      patchMatchupState(matchFormat, {
+        courtReductionConfirmation: {
+          payload,
+          requestedCourtCount: parsedCourtCount,
+          usableCourtCount,
+        },
       });
       return;
     }
 
-    void createMatchup(payload);
+    void createMatchup(matchFormat, payload);
   }
 
-  async function createMatchup(payload: GenerateMatchupPayload) {
-    setCourtReductionConfirmation(null);
+  async function createMatchup(matchFormat: MatchFormat, payload: GenerateMatchupPayload) {
+    patchMatchupState(matchFormat, { courtReductionConfirmation: null, isMatchupGenerating: true });
     setIsMatchupCompleteToastVisible(false);
-    setIsMatchupGenerating(true);
 
     try {
       const response = await fetch("/api/matchups/generate", {
@@ -525,25 +641,30 @@ export function AppClientShell({ children }: { children: ReactNode }) {
         throw new Error(body?.error?.message || "対戦表を作成できませんでした。");
       }
 
-      setMatchupResult(body.data);
+      patchMatchupState(matchFormat, {
+        matchupError: "",
+        matchupResult: body.data,
+      });
       setIsMatchupCompleteToastVisible(true);
     } catch (error) {
-      setMatchupError(toMessage(error, "対戦表を作成できませんでした。"));
+      patchMatchupState(matchFormat, { matchupError: toMessage(error, "対戦表を作成できませんでした。") });
     } finally {
-      setIsMatchupGenerating(false);
+      patchMatchupState(matchFormat, { isMatchupGenerating: false });
     }
   }
 
-  function cancelCourtReductionConfirmation() {
-    setCourtReductionConfirmation(null);
+  function cancelCourtReductionConfirmation(matchFormat: MatchFormat) {
+    patchMatchupState(matchFormat, { courtReductionConfirmation: null });
   }
 
-  function confirmCourtReduction() {
-    if (!courtReductionConfirmation || isMatchupGenerating) {
+  function confirmCourtReduction(matchFormat: MatchFormat) {
+    const state = matchupStates[matchFormat];
+
+    if (!state.courtReductionConfirmation || state.isMatchupGenerating) {
       return;
     }
 
-    void createMatchup(courtReductionConfirmation.payload);
+    void createMatchup(matchFormat, state.courtReductionConfirmation.payload);
   }
 
   async function handleMemberSubmit(event: FormEvent<HTMLFormElement>) {
@@ -601,6 +722,69 @@ export function AppClientShell({ children }: { children: ReactNode }) {
 
   if (appRoute === "unknown") {
     return <>{children}</>;
+  }
+
+  function renderMatchupScreen(matchFormat: MatchFormat) {
+    const state = matchupStates[matchFormat];
+    const selectedMembers = selectedMembersForState(state);
+    const selectedFemaleCount = selectedMembers.filter((member) => member.gender === "female").length;
+    const selectedMaleCount = selectedMembers.length - selectedFemaleCount;
+
+    return (
+      <MatchupScreen
+        courtReductionConfirmation={state.courtReductionConfirmation}
+        courtCount={state.courtCount}
+        draftGuestFemaleCount={state.draftGuestFemaleCount}
+        draftGuestMaleCount={state.draftGuestMaleCount}
+        draftMemberGuestFemaleCount={state.draftMemberGuestFemaleCount}
+        draftMemberGuestMaleCount={state.draftMemberGuestMaleCount}
+        draftSelectedMemberIds={state.draftSelectedMemberIds}
+        eventName={state.eventName}
+        guestFemaleCount={state.guestFemaleCount}
+        guestMaleCount={state.guestMaleCount}
+        isGuest={user?.isAnonymous ?? false}
+        isExportingPdf={isExportingPdf}
+        isMatchupGenerating={state.isMatchupGenerating}
+        matchFormat={matchFormat}
+        memberSelectionError={state.memberSelectionError}
+        matchupMode={state.matchupMode}
+        matchupError={state.matchupError}
+        matchupResult={state.matchupResult}
+        memberSelectionOpen={state.memberSelectionOpen}
+        memberGuestFemaleCount={state.memberGuestFemaleCount}
+        memberGuestMaleCount={state.memberGuestMaleCount}
+        members={sortedMembers}
+        onCourtCountChange={(value) => patchMatchupState(matchFormat, { courtCount: value })}
+        onCourtReductionCancel={() => cancelCourtReductionConfirmation(matchFormat)}
+        onCourtReductionConfirm={() => confirmCourtReduction(matchFormat)}
+        onDraftGuestFemaleCountChange={(value) => patchMatchupState(matchFormat, { draftGuestFemaleCount: value })}
+        onDraftGuestMaleCountChange={(value) => patchMatchupState(matchFormat, { draftGuestMaleCount: value })}
+        onDraftMemberGuestFemaleCountChange={(value) =>
+          patchMatchupState(matchFormat, { draftMemberGuestFemaleCount: value })
+        }
+        onDraftMemberGuestMaleCountChange={(value) =>
+          patchMatchupState(matchFormat, { draftMemberGuestMaleCount: value })
+        }
+        onEventNameChange={(value) => patchMatchupState(matchFormat, { eventName: value })}
+        onMemberSelectionCancel={() => cancelMemberSelection(matchFormat)}
+        onMemberSelectionConfirm={() => confirmMemberSelection(matchFormat)}
+        onMemberSelectionOpen={() => openMemberSelection(matchFormat)}
+        onMatchupModeChange={(value) => patchMatchupState(matchFormat, { matchupMode: value })}
+        onMatchupCreate={() => handleCreateMatchup(matchFormat)}
+        onPdfCreate={exportPdf}
+        onRoundCountChange={(value) => patchMatchupState(matchFormat, { roundCount: value })}
+        onSelectedMembersClear={() => clearDraftMemberSelection(matchFormat)}
+        onSelectedMembersSelectAll={() => selectAllDraftMembers(matchFormat)}
+        onSelectedMemberToggle={(memberId) => toggleDraftMemberSelection(matchFormat, memberId)}
+        onSortModeChange={setSortMode}
+        pdfErrorMessage={pdfErrorMessage}
+        roundCount={state.roundCount}
+        selectedFemaleCount={selectedFemaleCount}
+        selectedMaleCount={selectedMaleCount}
+        selectedMemberIds={state.selectedMemberIds}
+        sortMode={sortMode}
+      />
+    );
   }
 
   const content = (() => {
@@ -668,60 +852,11 @@ export function AppClientShell({ children }: { children: ReactNode }) {
     }
 
     if (appRoute === "doubles") {
-      return (
-        <DoublesMatchupScreen
-          courtReductionConfirmation={courtReductionConfirmation}
-          courtCount={courtCount}
-          draftGuestFemaleCount={draftGuestFemaleCount}
-          draftGuestMaleCount={draftGuestMaleCount}
-          draftMemberGuestFemaleCount={draftMemberGuestFemaleCount}
-          draftMemberGuestMaleCount={draftMemberGuestMaleCount}
-          draftSelectedMemberIds={draftSelectedMemberIds}
-          eventName={eventName}
-          guestFemaleCount={guestFemaleCount}
-          guestMaleCount={guestMaleCount}
-          isGuest={user.isAnonymous}
-          isExportingPdf={isExportingPdf}
-          isMatchupGenerating={isMatchupGenerating}
-          memberSelectionError={memberSelectionError}
-          matchupMode={matchupMode}
-          matchupError={matchupError}
-          matchupResult={matchupResult}
-          memberSelectionOpen={isMemberSelectionOpen}
-          memberGuestFemaleCount={memberGuestFemaleCount}
-          memberGuestMaleCount={memberGuestMaleCount}
-          members={sortedMembers}
-          onCourtCountChange={setCourtCount}
-          onCourtReductionCancel={cancelCourtReductionConfirmation}
-          onCourtReductionConfirm={confirmCourtReduction}
-          onDraftGuestFemaleCountChange={setDraftGuestFemaleCount}
-          onDraftGuestMaleCountChange={setDraftGuestMaleCount}
-          onDraftMemberGuestFemaleCountChange={setDraftMemberGuestFemaleCount}
-          onDraftMemberGuestMaleCountChange={setDraftMemberGuestMaleCount}
-          onEventNameChange={setEventName}
-          onMemberSelectionCancel={cancelMemberSelection}
-          onMemberSelectionConfirm={confirmMemberSelection}
-          onMemberSelectionOpen={openMemberSelection}
-          onMatchupModeChange={setMatchupMode}
-          onMatchupCreate={handleCreateMatchup}
-          onPdfCreate={exportPdf}
-          onRoundCountChange={setRoundCount}
-          onSelectedMembersClear={clearDraftMemberSelection}
-          onSelectedMembersSelectAll={selectAllDraftMembers}
-          onSelectedMemberToggle={toggleDraftMemberSelection}
-          onSortModeChange={setSortMode}
-          pdfErrorMessage={pdfErrorMessage}
-          roundCount={roundCount}
-          selectedFemaleCount={selectedFemaleCount}
-          selectedMaleCount={selectedMaleCount}
-          selectedMemberIds={selectedMemberIds}
-          sortMode={sortMode}
-        />
-      );
+      return renderMatchupScreen("doubles");
     }
 
     if (appRoute === "singles") {
-      return <SinglesPlaceholderScreen />;
+      return renderMatchupScreen("singles");
     }
 
     return <LandingHomeScreen activeMemberCount={activeMembers.length} isGuest={user.isAnonymous} />;
@@ -1046,7 +1181,7 @@ function LandingHomeScreen(props: { activeMemberCount: number; isGuest: boolean 
         <h1>テニスサークル運営サポート</h1>
         <p className="landing-hero-copy">
           メンバー登録、参加メンバー選択、対戦表作成をまとめて扱えるテニス練習会向けの運営サポートアプリです。
-          現状はダブルスの対戦表作成に対応しています。
+          ダブルスとシングルスの対戦表作成に対応しています。
         </p>
       </section>
 
@@ -1061,7 +1196,7 @@ function LandingHomeScreen(props: { activeMemberCount: number; isGuest: boolean 
         <section className="panel guest-notice-panel">
           <div className="panel-body">
             <p className="guest-notice-title">登録メンバー: {props.activeMemberCount}人</p>
-            <p className="muted">登録したメンバーは、ダブルス対戦表作成時の参加者選択で利用できます。</p>
+            <p className="muted">登録したメンバーは、ダブルス・シングルス対戦表作成時の参加者選択で利用できます。</p>
           </div>
         </section>
       )}
@@ -1102,9 +1237,9 @@ function LandingHomeScreen(props: { activeMemberCount: number; isGuest: boolean 
           <div>
             <p className="section-kicker">Singles</p>
             <h2>シングルス対戦表</h2>
-            <p className="muted">シングルス向けの対戦表作成は近日追加予定です。現時点では案内画面のみ表示します。</p>
+            <p className="muted">登録メンバーまたはGuest人数から参加者を指定し、1コート2人のシングルス対戦表を作成します。</p>
           </div>
-          <Link className="button button-secondary" href="/matchups/singles">
+          <Link className="button button-primary" href="/matchups/singles">
             <Swords size={18} />
             シングルスへ
           </Link>
@@ -1131,18 +1266,6 @@ function RegisteredUserRequiredScreen(props: { onBackHome: () => void; onLogout:
             ログアウトしてログイン
           </button>
         </div>
-      </div>
-    </section>
-  );
-}
-
-function SinglesPlaceholderScreen() {
-  return (
-    <section className="panel singles-placeholder-panel">
-      <div className="panel-body">
-        <p className="section-kicker">Singles</p>
-        <h1>シングルス対戦表</h1>
-        <p className="muted">シングルス対戦表は近日追加予定です。</p>
       </div>
     </section>
   );
@@ -1337,7 +1460,7 @@ function PasswordSetupPanel(props: {
   );
 }
 
-function DoublesMatchupScreen(props: {
+function MatchupScreen(props: {
   courtReductionConfirmation: CourtReductionConfirmation | null;
   courtCount: string;
   draftGuestFemaleCount: string;
@@ -1351,6 +1474,7 @@ function DoublesMatchupScreen(props: {
   isGuest: boolean;
   isExportingPdf: boolean;
   isMatchupGenerating: boolean;
+  matchFormat: MatchFormat;
   memberSelectionError: string;
   matchupMode: MatchupMode;
   matchupError: string;
@@ -1390,6 +1514,7 @@ function DoublesMatchupScreen(props: {
     { label: "同性対決優先", title: "同性同士の対戦を優先して組合せを作成します。", value: "sameGenderPriority" },
     { label: "混合対決優先", title: "男女混合の対戦を優先して組合せを作成します。", value: "mixedDoublesPriority" },
   ];
+  const formatConfig = MATCH_FORMAT_CONFIG[props.matchFormat];
   const guestFemaleDisplayCount = toDisplayCount(props.guestFemaleCount);
   const guestMaleDisplayCount = toDisplayCount(props.guestMaleCount);
   const guestParticipantCount = guestFemaleDisplayCount + guestMaleDisplayCount;
@@ -1415,17 +1540,17 @@ function DoublesMatchupScreen(props: {
   const maleSummaryCount = props.isGuest ? guestMaleDisplayCount : props.selectedMaleCount + memberGuestMaleDisplayCount;
   const parsedCourtCount = parseCount(props.courtCount);
   const parsedRoundCount = parseCount(props.roundCount);
-  const usableCourtCount = toUsableCourtCount(participantCount, parsedCourtCount);
+  const usableCourtCount = toUsableCourtCount(participantCount, parsedCourtCount, formatConfig.playersPerCourt);
   const canCreateMatchup =
-    participantCount >= 4 &&
-    participantCount <= 30 &&
+    participantCount >= formatConfig.participantMin &&
+    participantCount <= PARTICIPANT_COUNT_MAX &&
     parsedCourtCount !== null &&
-    parsedCourtCount >= 1 &&
-    parsedCourtCount <= 8 &&
+    parsedCourtCount >= COURT_COUNT_MIN &&
+    parsedCourtCount <= COURT_COUNT_MAX &&
     usableCourtCount >= 1 &&
     parsedRoundCount !== null &&
-    parsedRoundCount >= 1 &&
-    parsedRoundCount <= 20;
+    parsedRoundCount >= ROUND_COUNT_MIN &&
+    parsedRoundCount <= ROUND_COUNT_MAX;
   const summaryRoundCount = canCreateMatchup ? (parsedRoundCount ?? 0) : 0;
   const summaryParticipantSeparator = props.isGuest ? " / " : "/ ";
   const summaryRoundSeparator = props.isGuest ? " / " : "/ ";
@@ -1441,26 +1566,28 @@ function DoublesMatchupScreen(props: {
       <section className="panel condition-panel">
         <div className="condition-heading">
           <p className="section-kicker">Conditions</p>
-          <p className="condition-intro">メンバー選択（選択or人数入力）、コート数、実施回数、対戦モードを指定します。</p>
+          <p className="condition-intro">{formatConfig.conditionIntro}</p>
         </div>
 
-        <div className="condition-block">
-          <span className="condition-label">対戦モード</span>
-          <div className="mode-selector" role="group" aria-label="対戦モード">
-            {matchupModeOptions.map((option) => (
-              <button
-                aria-pressed={props.matchupMode === option.value}
-                className={`mode-option ${props.matchupMode === option.value ? "mode-option-active" : ""}`}
-                key={option.value}
-                title={option.title}
-                type="button"
-                onClick={() => props.onMatchupModeChange(option.value)}
-              >
-                {option.label}
-              </button>
-            ))}
+        {props.matchFormat === "doubles" ? (
+          <div className="condition-block">
+            <span className="condition-label">対戦モード</span>
+            <div className="mode-selector" role="group" aria-label="対戦モード">
+              {matchupModeOptions.map((option) => (
+                <button
+                  aria-pressed={props.matchupMode === option.value}
+                  className={`mode-option ${props.matchupMode === option.value ? "mode-option-active" : ""}`}
+                  key={option.value}
+                  title={option.title}
+                  type="button"
+                  onClick={() => props.onMatchupModeChange(option.value)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : null}
 
         <div className="condition-grid">
           <div className="field condition-field condition-field-event">
@@ -1682,7 +1809,15 @@ function MatchupResultPanel(props: {
       return "なし";
     }
 
-    return `${playerName(pair.player1Id)} / ${playerName(pair.player2Id)}`;
+    return `${playerName(pair.player1Id)} & ${playerName(pair.player2Id)}`;
+  }
+
+  function singlesMatchLabel(match?: MatchupSinglesMatch | null) {
+    if (!match) {
+      return "なし";
+    }
+
+    return `${playerName(match.player1Id)} vs ${playerName(match.player2Id)}`;
   }
 
   return (
@@ -1715,6 +1850,10 @@ function MatchupResultPanel(props: {
               <h4>コート{court.courtNumber}</h4>
               {court.isUnused ? (
                 <p className="court-unused">未使用</p>
+              ) : court.singlesMatch ? (
+                <div className="singles-match-display">
+                  <strong>{singlesMatchLabel(court.singlesMatch)}</strong>
+                </div>
               ) : (
                 <dl>
                   <div>
@@ -1731,7 +1870,7 @@ function MatchupResultPanel(props: {
           ));
           const restCard = (
             <div className="rest-card" key={`${round.roundNumber}-rest`}>
-              <span>{props.isGuest ? "休憩者" : "休憩"}</span>
+              <span>休憩</span>
               <strong>{restNames.length > 0 ? restNames.join("、") : props.isGuest ? "この回の休憩者はいません。" : "なし"}</strong>
             </div>
           );
@@ -2240,12 +2379,12 @@ function toDisplayCount(value: string) {
   return Math.max(0, Math.trunc(parsed));
 }
 
-function toUsableCourtCount(participantCount: number, requestedCourtCount: number | null) {
+function toUsableCourtCount(participantCount: number, requestedCourtCount: number | null, playersPerCourt: 2 | 4) {
   if (requestedCourtCount === null || requestedCourtCount < 1) {
     return 0;
   }
 
-  const maxUsableCourtCount = Math.floor(participantCount / 4);
+  const maxUsableCourtCount = Math.floor(participantCount / playersPerCourt);
 
   if (maxUsableCourtCount < 1) {
     return 0;

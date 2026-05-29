@@ -11,6 +11,7 @@ function createGenerateRequest(body: unknown) {
 function createValidBody(overrides: Record<string, unknown> = {}) {
   return {
     eventName: "  API smoke  ",
+    matchFormat: "doubles",
     matchupMode: "standard",
     participantCount: 4,
     participants: [
@@ -64,6 +65,7 @@ describe("POST /api/matchups/generate", () => {
     });
     expect(JSON.parse(String(init?.body))).toEqual({
       eventName: "API smoke",
+      matchFormat: "doubles",
       matchupMode: "standard",
       participantCount: 4,
       participants: [
@@ -103,6 +105,122 @@ describe("POST /api/matchups/generate", () => {
       message: "同性対決優先・混合対決優先では参加者の性別が必要です。",
     });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("forwards singles payloads with two participants and gender markers for display", async () => {
+    vi.stubEnv("MATCHUP_API_KEY", "test-api-key");
+    vi.stubEnv("MATCHUP_API_BASE_URL", "https://matchup.example.test");
+
+    const upstreamBody = {
+      data: {
+        conditions: {
+          matchFormat: "singles",
+          playersPerCourt: 2,
+        },
+        rounds: [
+          {
+            roundNumber: 1,
+            courts: [
+              {
+                courtNumber: 1,
+                pairA: null,
+                pairB: null,
+                singlesMatch: { player1Id: "p1", player2Id: "p2" },
+                isUnused: false,
+              },
+            ],
+            restPlayerIds: [],
+          },
+        ],
+      },
+    };
+    const fetchMock = vi.fn<typeof fetch>(async () => {
+      return new Response(JSON.stringify(upstreamBody), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await POST(
+      createGenerateRequest(
+        createValidBody({
+          matchFormat: "singles",
+          matchupMode: "sameGenderPriority",
+          participantCount: 2,
+          participants: [
+            { id: "p1", name: "佐藤", gender: "female" },
+            { id: "p2", name: "鈴木" },
+          ],
+        }),
+      ),
+    );
+    const body = await response.json();
+    const [, init] = fetchMock.mock.calls[0];
+
+    expect(response.status).toBe(200);
+    expect(body).toEqual(upstreamBody);
+    expect(JSON.parse(String(init?.body))).toEqual({
+      eventName: "API smoke",
+      matchFormat: "singles",
+      matchupMode: "sameGenderPriority",
+      participantCount: 2,
+      participants: [
+        { id: "p1", name: "佐藤", gender: "female" },
+        { id: "p2", name: "鈴木" },
+      ],
+      courtCount: 1,
+      roundCount: 1,
+    });
+  });
+
+  it("rejects invalid singles upstream responses without singlesMatch", async () => {
+    vi.stubEnv("MATCHUP_API_KEY", "test-api-key");
+    vi.stubEnv("MATCHUP_API_BASE_URL", "https://matchup.example.test");
+
+    const upstreamBody = {
+      data: {
+        conditions: {
+          matchFormat: "singles",
+          playersPerCourt: 2,
+        },
+        rounds: [
+          {
+            roundNumber: 1,
+            courts: [
+              {
+                courtNumber: 1,
+                pairA: null,
+                pairB: null,
+                isUnused: false,
+              },
+            ],
+            restPlayerIds: [],
+          },
+        ],
+      },
+    };
+    const fetchMock = vi.fn<typeof fetch>(async () => {
+      return new Response(JSON.stringify(upstreamBody), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await POST(
+      createGenerateRequest(
+        createValidBody({
+          matchFormat: "singles",
+          participantCount: 2,
+          participants: [
+            { id: "p1", name: "佐藤", gender: "female" },
+            { id: "p2", name: "鈴木", gender: "male" },
+          ],
+        }),
+      ),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(body.error).toEqual({
+      code: "MATCHUP_API_RESPONSE_INVALID",
+      message: "対戦表APIのシングルス結果に対戦者情報が含まれていません。",
+    });
   });
 
   it("returns a configuration error before calling upstream when the API key is missing", async () => {
