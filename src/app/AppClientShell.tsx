@@ -223,6 +223,10 @@ export function AppClientShell({ children }: { children: ReactNode }) {
     };
   }, [isMatchupCompleteToastVisible]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [pathname]);
+
   const members = useMemo(
     () => (memberState.uid === user?.uid ? memberState.members : []),
     [memberState, user?.uid],
