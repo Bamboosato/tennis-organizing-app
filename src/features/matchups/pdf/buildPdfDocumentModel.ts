@@ -1,6 +1,7 @@
 import { formatParticipantDisplayName } from "../formatParticipantDisplayName";
 
 export type PdfMatchupMode = "standard" | "sameGenderPriority" | "mixedDoublesPriority";
+export type PdfMatchFormat = "doubles" | "singles";
 
 export type PdfMatchupParticipant = {
   id: string;
@@ -14,10 +15,16 @@ export type PdfMatchupPair = {
   player2Id: string;
 };
 
+export type PdfSinglesMatch = {
+  player1Id: string;
+  player2Id: string;
+};
+
 export type PdfMatchupCourt = {
   courtNumber: number;
   pairA?: PdfMatchupPair | null;
   pairB?: PdfMatchupPair | null;
+  singlesMatch?: PdfSinglesMatch | null;
   isUnused?: boolean;
 };
 
@@ -30,10 +37,12 @@ export type PdfMatchupRound = {
 export type PdfMatchupResult = {
   conditions: {
     eventName?: string;
+    matchFormat?: PdfMatchFormat;
     matchupMode?: PdfMatchupMode;
     participants: PdfMatchupParticipant[];
     courtCount: number;
     roundCount: number;
+    playersPerCourt?: 2 | 4;
   };
   rounds: PdfMatchupRound[];
   seed: number;
@@ -60,6 +69,7 @@ export type PdfCourtBlock = {
   pairAPlayers: string[];
   pairBPlayers: string[];
   isUnused: boolean;
+  singlesMatchLabel?: string;
 };
 
 export type PdfRoundBlock = {
@@ -75,6 +85,7 @@ export type PdfPageModel = {
 
 export type PdfDocumentModel = {
   eventName: string;
+  matchFormat: PdfMatchFormat;
   roundCount: number;
   courtCount: number;
   participantCount: number;
@@ -95,8 +106,34 @@ function pairPlayers(pair: PdfMatchupPair, participantNameById: Map<string, stri
   return [participantNameById.get(pair.player1Id) ?? pair.player1Id, participantNameById.get(pair.player2Id) ?? pair.player2Id];
 }
 
+function singlesMatchLabel(match: PdfSinglesMatch, participantNameById: Map<string, string>) {
+  const player1 = participantNameById.get(match.player1Id) ?? match.player1Id;
+  const player2 = participantNameById.get(match.player2Id) ?? match.player2Id;
+
+  return `${player1} vs ${player2}`;
+}
+
 function buildCourtBlock(court: PdfMatchupCourt, participantNameById: Map<string, string>): PdfCourtBlock {
-  if (court.isUnused || !court.pairA || !court.pairB) {
+  if (court.isUnused) {
+    return {
+      courtNumber: court.courtNumber,
+      isUnused: true,
+      pairAPlayers: ["未使用"],
+      pairBPlayers: [""],
+    };
+  }
+
+  if (court.singlesMatch) {
+    return {
+      courtNumber: court.courtNumber,
+      isUnused: false,
+      pairAPlayers: [],
+      pairBPlayers: [],
+      singlesMatchLabel: singlesMatchLabel(court.singlesMatch, participantNameById),
+    };
+  }
+
+  if (!court.pairA || !court.pairB) {
     return {
       courtNumber: court.courtNumber,
       isUnused: true,
@@ -217,6 +254,7 @@ export function buildPdfDocumentModel(result: PdfMatchupResult): PdfDocumentMode
 
   return {
     eventName: result.conditions.eventName || "テニスサークル運営サポート",
+    matchFormat: result.conditions.matchFormat ?? "doubles",
     roundCount: result.conditions.roundCount,
     courtCount: result.conditions.courtCount,
     participantCount: result.conditions.participants.length,
@@ -284,7 +322,7 @@ export function buildPdfFileName(result: PdfMatchupResult) {
   const prefix = sanitized || "tennis-organizing";
   const participantCount = result.conditions.participants.length;
   const courtCount = result.conditions.courtCount;
-  const modeLabel = matchupModeFileNameLabel(result.conditions.matchupMode);
+  const modeLabel = result.conditions.matchFormat === "singles" ? "シングルス" : matchupModeFileNameLabel(result.conditions.matchupMode);
 
   return `${prefix}_${participantCount}人_${courtCount}面_${modeLabel}-matchup.pdf`;
 }

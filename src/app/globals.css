@@ -799,8 +799,7 @@ h2 {
   opacity: 0.72;
 }
 
-.restricted-panel,
-.singles-placeholder-panel {
+.restricted-panel {
   max-width: 760px;
 }
 

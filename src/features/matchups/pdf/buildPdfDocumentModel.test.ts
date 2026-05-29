@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildPdfDocumentModel, type PdfMatchupResult } from "./buildPdfDocumentModel";
+import { buildPdfDocumentModel, buildPdfFileName, type PdfMatchupResult } from "./buildPdfDocumentModel";
 
 describe("buildPdfDocumentModel", () => {
   it("uses gender-marked participant names for registered-user PDF cells", () => {
@@ -134,5 +134,48 @@ describe("buildPdfDocumentModel", () => {
     expect(round.courtRows[1][0]?.pairAPlayers).toEqual(["ゲスト01\u00a0F", "ゲスト02\u00a0F"]);
     expect(round.courtRows[1][0]?.pairBPlayers).toEqual(["ゲスト05\u00a0M", "ゲスト06\u00a0M"]);
     expect(round.restCell).toBe("ゲスト07\u00a0M, ゲスト08\u00a0M");
+  });
+
+  it("formats singles matches with gender-marked participant names", () => {
+    const result: PdfMatchupResult = {
+      conditions: {
+        eventName: "シングルス会",
+        matchFormat: "singles",
+        matchupMode: "standard",
+        playersPerCourt: 2,
+        participants: [
+          { id: "guest-01", name: "ゲスト01", gender: "female", index: 1 },
+          { id: "guest-02", name: "ゲスト02", gender: "male", index: 2 },
+          { id: "guest-03", name: "ゲスト03", gender: "female", index: 3 },
+        ],
+        courtCount: 1,
+        roundCount: 1,
+      },
+      rounds: [
+        {
+          roundNumber: 1,
+          courts: [
+            {
+              courtNumber: 1,
+              pairA: null,
+              pairB: null,
+              singlesMatch: { player1Id: "guest-01", player2Id: "guest-02" },
+            },
+          ],
+          restPlayerIds: ["guest-03"],
+        },
+      ],
+      seed: 2468,
+    };
+
+    const model = buildPdfDocumentModel(result);
+    const court = model.pages[0].rounds[0].courtRows[0][0];
+
+    expect(model.matchFormat).toBe("singles");
+    expect(court?.singlesMatchLabel).toBe("ゲスト01\u00a0F vs ゲスト02\u00a0M");
+    expect(court?.pairAPlayers).toEqual([]);
+    expect(court?.pairBPlayers).toEqual([]);
+    expect(model.pages[0].rounds[0].restCell).toBe("ゲスト03\u00a0F");
+    expect(buildPdfFileName(result)).toBe("シングルス会_3人_1面_シングルス-matchup.pdf");
   });
 });
