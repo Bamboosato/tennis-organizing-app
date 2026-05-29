@@ -1,5 +1,6 @@
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
+import { AppClientShell } from "@/app/AppClientShell";
 import { PwaSplashScreen } from "@/components/pwa/PwaSplashScreen";
 import { ServiceWorkerRegistration } from "@/components/pwa/ServiceWorkerRegistration";
 import { APP_ICON_192_SRC, APP_ICON_512_SRC } from "@/lib/constants/assets";
@@ -42,7 +43,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="ja">
       <body>
         <PwaSplashScreen />
-        {children}
+        <AppClientShell>{children}</AppClientShell>
         <ServiceWorkerRegistration />
         <Analytics />
       </body>
