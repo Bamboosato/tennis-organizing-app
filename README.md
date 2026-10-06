@@ -58,6 +58,8 @@ Guestログインと、登録ユーザーが追加する当日ゲストは別の
 - [フローティングナビゲーション・URL別画面設計](docs/floating-navigation-ui-design.md)
 - [PWA Service Worker・スプラッシュ設計](docs/pwa-service-worker-design.md)
 - [実装・文書の整合確認記録](docs/implementation-documentation-audit.md)
+- [依存脆弱性への対応案（実装前の調査）](docs/dependency-vulnerability-response-plan.md)
+- [依存更新・監査運用・検証結果](docs/dependency-security-update.md)
 - [ver1.00 リリース対象棚卸し（当時の記録）](docs/release-v1.00-scope.md)
 - [Firebase 本番設定チェックリスト](docs/firebase-production-setup.md)
 - [Vercel 本番設定チェックリスト](docs/vercel-production-setup.md)
@@ -104,16 +106,19 @@ Firebase Client SDKの必須4変数はビルド時にも必要です。`NEXT_PUB
 npm run lint
 npx --no-install tsc --noEmit
 npm test
+npm run test:security
 npm run build
 npm run test:e2e -- --workers=1
-npm audit
+npm run audit:security
 ```
 
 - `npm test`: VitestでAPI proxy、ゲスト採番・内訳、参加者表示・Summary、PDFモデルを検証します。
+- `npm run test:security`: 監査の期限切れ・critical・新規advisory・本番依存への混入・監査取得失敗を拒否する判定を検証します。
+- `npm run audit:security`: 本番依存はすべての脆弱性を拒否します。全依存も監査し、修正版未公開の開発用braces系統だけを2026-11-05 00:00 UTCまで例外管理します。advisory・版・dev分類が変われば失敗し、JSON証跡を `.security-audit/` に保存します。通常の `npm audit` は残る5項目により終了コード1を返します。[運用と再評価手順](docs/dependency-security-update.md)を参照してください。
 - `npm run test:e2e`: PlaywrightのChromiumでmanifest、Service Worker配信・静的キャッシュ／API非キャッシュ、PWAスプラッシュ、アイコンURLを検証します。認証・メンバー管理・生成操作全体のE2Eではありません。
 - E2Eは本番ビルド後の `next start` をポート `3001` で起動します。先に `npm run build` を実行してください。`reuseExistingServer: true` のため、既存サーバーを再利用する場合は最新ビルドか確認します。実行は同一端末で直列にします。
 - E2Eのサーバー設定はFirebaseのダミー値を指定しますが、`NEXT_PUBLIC_*` はビルド時に埋め込まれます。認証・Firestoreの検証用環境やEmulator接続は別途必要です。
-- [GitHub Actions](.github/workflows/ci.yml) は `main` へのpush・PRでNode.js 24を使い、lint、型検査、Vitest、build、Chromium E2E、auditを実行します。
+- [GitHub Actions](.github/workflows/ci.yml) は `main` へのpush・PRでNode.js 24を使い、lint、型検査、Vitest、監査ポリシー、依存監査、隔離Firebase EmulatorでのSDK互換検証、build、Chromium E2Eを実行します。監査JSONはartifactに保存します。
 
 変更の影響に応じてE2Eを未実施／対象ケースのみ／クロスブラウザー／全件から選び、選定理由と未実施範囲を記録します。主要な手動確認観点は[要件文書](docs/requirements-design.md#7-テスト設計)を参照してください。
 
