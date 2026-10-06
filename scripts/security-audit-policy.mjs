@@ -29,7 +29,8 @@ export function evaluateAudits({ full, production, lock, exception, now = new Da
         !Object.hasOwn(exception.packages, name) ||
         item.severity === "critical" || item.nodes.length === 0 || item.via.length === 0) return false;
     // A previously dev-only package becoming a runtime dependency must block.
-    if (!item.nodes.every(path => lock.packages?.[path]?.dev === true &&
+    if (!item.nodes.every(path => path === `node_modules/${name}` &&
+        lock.packages?.[path]?.dev === true &&
         lock.packages[path].version === exception.packages[name])) return false;
     const visited = new Set(seen).add(name);
     return item.via.every(cause => typeof cause === "string"

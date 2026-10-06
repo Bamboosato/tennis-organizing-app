@@ -67,6 +67,13 @@ test("requires review when an excepted version or dependency path changes", () =
   input.full.vulnerabilities.braces.nodes = ["node_modules/other/braces"];
   assert.equal(evaluateAudits(input).ok, false);
 });
+test("blocks a new nested path even if its version remains the same", () => {
+  const input = fixture();
+  const path = "node_modules/other/node_modules/braces";
+  input.lock.packages[path] = { dev: true, version: "3.0.3" };
+  input.full.vulnerabilities.braces.nodes.push(path);
+  assert.equal(evaluateAudits(input).ok, false);
+});
 test("fails closed for missing, network-error, or inconsistent audit data", () => {
   for (const full of [{}, { error: { code: "ECONNRESET" } }, { ...audit(), metadata: { vulnerabilities: { total: 1 } } }]) {
     assert.equal(evaluateAudits({ ...fixture(), full }).ok, false);

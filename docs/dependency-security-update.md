@@ -41,13 +41,15 @@ Windows / Node.js `24.13.0` / npm `11.6.2` で `npm ci` による再インスト
 | `npm ci` | 成功。更新したlockfileで再インストールできること |
 | lint / 型検査 / 本番build | 成功。Next.js、CSS、ネイティブ画像依存の更新後もビルドできること |
 | 既存Vitest | 6ファイル・26ケース成功。APIの正常・不正入力・上流異常、ゲスト採番、表示・PDFモデルの回帰確認 |
-| 監査ポリシー | 専用のNode.jsテストで正常な例外、期限の境界、critical、新規項目、版・分類の変化、取得失敗、原因循環を確認 |
+| 監査ポリシー | 専用のNode.jsテスト12ケース成功。正常な例外、期限の境界、critical、新規項目、版・分類・依存経路の変化、取得失敗、原因循環を確認 |
 | PWA E2E | Chromium 5ケース成功、1 worker。manifest、SW更新ヘッダー、静的キャッシュ・API非キャッシュ、スプラッシュ、アイコンを確認 |
 | PC / モバイルの対象フロー | ダミー認証・生成レスポンスでGuest → ダブルス → モバイルメニュー → シングルス、生成結果、502エラー表示 → 再試行成功を確認 |
 | PDFの実出力 | 日本語の開催名・性別記号を含むダブルスとシングルスで、実際のjsPDFダウンロードが成功。生成・認証はモック、PDF処理とフォント取得は実処理 |
-| Firebase Emulator | Windows Java 21のselector初期化がloopback接続エラーで失敗し、ローカルではSDK通信の検証に到達せず。IPv4 / selector切替でも再現。Linux CIで同じSDK検証を必須化 |
+| Firebase Emulator | Linux CIでAuth signup/login/logout、Firestore create/read/update/query/snapshot/deleteの検証が成功。Windows Java 21ではselector初期化のloopback接続エラーにより起動できず、IPv4 / selector切替でも再現 |
 
 画面確認の証跡はローカルの `output/playwright/` にある。確認中のconsoleにはローカルで未提供のVercel Analytics scriptの404と、意図した生成エラーの502があり、回復後にエラー表示が消えたことを確認した。
+
+初回のLinux CIは[run 37408099866](https://github.com/Bamboosato/tennis-organizing-app/actions/runs/37408099866)で全チェック成功。SDKは更新した同一lockfileで確認した。監査例外の依存経路検知をさらに厳格化した最終HEADの検証・Preview状態は[PR #22](https://github.com/Bamboosato/tennis-organizing-app/pull/22)で確認する。
 
 E2Eは「対象ケースのみ」を選定した。フレームワーク・CSS・PDF依存の更新による主要な回帰を確認する目的で、既存PWAケースとPC / モバイル幅の主要操作を実施した。Firefox / WebKit全件、全ての人数・コート・ラウンドの組み合わせ、実ユーザーのFirebaseデータ、実上流APIによる生成、PDF全ページの目視は未実施。本番の認証・書き込みは検証用操作で変更していない。
 

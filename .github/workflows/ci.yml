@@ -53,6 +53,7 @@ jobs:
           java-version: 21
 
       - name: Verify Auth and Firestore SDK compatibility
+        timeout-minutes: 10
         run: npx --yes --package=firebase-tools@15.17.0 firebase emulators:exec --only auth,firestore --project demo-tennis-security --config scripts/firebase-smoke.config.json "node scripts/firebase-security-smoke.mjs"
 
       - name: Build
