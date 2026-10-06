@@ -1,5 +1,9 @@
 # PWA Service Worker 静的アセットキャッシュ設計
 
+現行実装との整合確認日: 2026-10-06（package version `1.1.0`）
+
+Manifest、Service Worker、standalone起動時のスプラッシュは実装済み。本書の「キャッシュしない」はService Workerの制御対象を示し、Firebase SDK自身の認証状態管理まで無効化する意味ではない。
+
 ## 1. 目的
 
 ホーム画面追加後の再訪問や通信状態が不安定な場面で、アイコン、フォント、Next.js のビルド済み静的アセットを Service Worker 経由で再利用しやすくする。
@@ -13,8 +17,9 @@
 - `src/app/manifest.ts` による Web App Manifest の追加
 - `public/sw.js` による Service Worker の追加
 - production 環境での Service Worker 登録
-- `/icons/*`、`/fonts/*`、`/_next/static/*` の runtime cache
-- `/icons/icon-192.png`、`/icons/icon-512.png` の install 時 precache
+- `/brand/*`、`/icons/*`、`/fonts/*`、`/_next/static/*` の runtime cache
+- `/brand/logo-bamboosato.webp?brandv=bamboosato-v1`、`/icons/icon-192.png`、`/icons/icon-512.png` の install 時 precache
+- `src/components/pwa/PwaSplashScreen.tsx` によるstandalone起動時のブランドロゴ表示
 - `/sw.js` の no-store ヘッダー設定
 - Playwright による manifest / Service Worker / Cache Storage の E2E 検証
 
@@ -25,7 +30,7 @@
 - Firebase Authentication / Firestore データのキャッシュ
 - Push 通知
 - Background Sync
-- IndexedDB へのデータ保存
+- アプリ独自のIndexedDBへの対戦表・メンバー保存（Firebase SDK内部の保存方式とは区別する）
 
 ## 3. キャッシュ方針
 
@@ -33,11 +38,16 @@
 | --- | --- | --- |
 | `/_next/static/*` | stale while revalidate | ファイル名がビルド単位で変わるため古いレスポンスを使っても安全性が高い |
 | `/icons/*` | stale while revalidate + 主要アイコン precache | ホーム画面追加と再訪問時に必要になる |
+| `/brand/*` | stale while revalidate + ブランドロゴ precache | standalone起動時のスプラッシュで利用する |
 | `/fonts/*` | stale while revalidate | PDF 用フォント再取得の負荷を抑える |
 | HTML | キャッシュしない | 古い画面が残る事故を避ける |
 | `/api/*` | キャッシュしない | 生成結果、認証状態、外部 API 依存を古くしない |
 
 Service Worker 自体は `/sw.js` として配信し、`Cache-Control: no-cache, no-store, must-revalidate` を付ける。
+
+`ServiceWorkerRegistration` はproductionのみで、ページ読み込み完了後にscope `/`、`updateViaCache: "none"` で登録する。未対応ブラウザー・登録失敗時は画面利用を継続する。対象は同一originのGET、Range requestなし、対象prefixに一致するリクエスト。runtime保存は成功したbasic responseに限定する。
+
+HTMLを保存しないため、完全オフラインでの起動・認証・メンバー取得・対戦表生成は保証しない。静的キャッシュがあってもデータ処理には通信が必要になる。
 
 画面左上のアプリアイコンと metadata の icon URL は `iconv=crop-v1` のような手動バージョンを使う。通常のアプリ更新では変更せず、アイコン画像そのものを差し替える場合だけ更新する。
 
@@ -49,6 +59,14 @@ Service Worker 自体は `/sw.js` として配信し、`Cache-Control: no-cache,
 
 Service Worker の `activate` で `tennis-organizing-static-` から始まる古いキャッシュを削除し、静的アセットキャッシュだけを入れ替える。
 
+### 4.1 起動スプラッシュ
+
+- `display-mode: standalone` またはiOSの `navigator.standalone === true` のときに表示する。通常ブラウザー表示では出さない。
+- ブランドロゴを約1200ms表示し、320msでフェードして除去する。
+- `sessionStorage` の `tennis-organizing-pwa-splash-shown-v1` で表示済みを記録する。同一セッションの再読み込みでは再表示しない。
+- sessionStorageが利用できない場合も表示終了を妨げない。その場合、次回読み込みで再表示され得る。
+- このフラグは対戦表の入力・結果の保存ではない。
+
 ## 5. テスト設計
 
 ### 5.1 テスト観点
@@ -59,6 +77,8 @@ Service Worker の `activate` で `tennis-organizing-static-` から始まる古
 - `/sw.js` が JavaScript として配信されること。
 - Service Worker 登録後、対象静的アセットが Cache Storage に保存されること。
 - `/api/*` が Cache Storage に保存されないこと。
+- standaloneでスプラッシュを表示し、同一セッションの再読み込みでは再表示しないこと。
+- アプリアイコンURLがpackage versionの変更に連動せず安定していること。
 
 非機能観点:
 
@@ -73,7 +93,7 @@ Service Worker の `activate` で `tennis-organizing-static-` から始まる古
 
 UI 観点:
 
-- Service Worker 追加による画面表示変更はないこと。
+- Service Workerの登録・キャッシュ処理自体による画面表示変更はないこと。standalone起動時のみスプラッシュを表示すること。
 - PWA インストール用バナーや追加導線は作らないこと。
 
 ### 5.2 正常系
@@ -101,6 +121,14 @@ UI 観点:
 | 新 Service Worker install | 主要アイコンを precache | 静的キャッシュが作成される |
 | fetch 発生 | 対象静的アセットを取得 | cache hit があれば返し、裏で更新する |
 | activate | 古い静的キャッシュあり | 現行キャッシュ以外を削除する |
+| standalone初回起動 | ロゴを表示 | 約1.52秒後に除去し、表示済みを記録 |
+| 同一セッション再読み込み | 表示済みフラグあり | スプラッシュを表示しない |
+
+### 5.6 既存自動テストの範囲
+
+`e2e/pwa.spec.ts` にmanifest、SW配信ヘッダー、静的キャッシュ／API非キャッシュ、スプラッシュ、アイコンURLの5ケースがある。Playwright設定はChromiumのみで、実機PWAインストール・iOS standalone・ネットワーク断・全境界条件の検証済み一覧ではない。
+
+本番ビルド後に `npm run test:e2e -- --workers=1` で直列実行する。既存サーバー再利用時はビルドの鮮度を確認し、対象ケース・環境・未実施範囲を記録する。
 
 ## 6. リスクと優先度
 
