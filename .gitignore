@@ -12,6 +12,9 @@ tsconfig.tsbuildinfo
 coverage/
 playwright-report/
 test-results/
+.security-audit/
+.playwright-cli/
+output/playwright/
 
 # local env files
 .env
