@@ -2,6 +2,8 @@
 
 作成日: 2026-05-14
 
+文書区分: 初回本番設定手順と2026-05の確認記録。2026-10-06に現行ソースの参照先を更新したが、Firebase Console・CLIログイン・本番provider・Rules反映状態は今回再確認していない。記録済みの環境状態は利用時に再確認する。現行機能は[要件・設計](requirements-design.md)を参照する。
+
 ## 1. 目的
 
 ver1.00 本番展開に必要な Firebase 側設定を固定する。
@@ -45,11 +47,11 @@ Firebase Console で以下を確認する。
 
 | 機能 | Firebase Auth API | 実装箇所 |
 | --- | --- | --- |
-| 新規 ID 登録 | `createUserWithEmailAndPassword` | `src/app/page.tsx` |
-| メールログイン | `signInWithEmailAndPassword` | `src/app/page.tsx` |
-| Guest ログイン | `signInAnonymously` | `src/app/page.tsx` |
-| パスワード再設定 | `sendPasswordResetEmail` | `src/app/page.tsx` |
-| ログアウト | `signOut` | `src/app/page.tsx` |
+| 新規 ID 登録 | `createUserWithEmailAndPassword` | `src/app/AppClientShell.tsx` |
+| メールログイン | `signInWithEmailAndPassword` | `src/app/AppClientShell.tsx` |
+| Guest ログイン | `signInAnonymously` | `src/app/AppClientShell.tsx` |
+| パスワード再設定 | `sendPasswordResetEmail` | `src/app/AppClientShell.tsx` |
+| ログアウト | `signOut` | `src/app/AppClientShell.tsx` |
 
 ## 4. Cloud Firestore
 
@@ -77,6 +79,8 @@ ver1.00 の Security Rules 方針:
 - Guest / Anonymous user はメンバー管理データへアクセスできない。
 - delete は許可しない。画面上の削除は `inactive` への update とする。
 
+現行Rulesも同じ権限方針。activeメンバー99人上限と入力フィールドの検証はクライアント側にあり、Rulesに件数・文字数・フィールド型の検証はない。アプリは `users/{uid}/members/{memberId}` を作成するが、親のユーザーprofile文書を作成する処理はない。
+
 ## 5. Web App config
 
 Firebase Console の Web app 設定から、以下を Vercel Production Environment Variables へ転記する。
@@ -100,6 +104,8 @@ CLIで確認済みの Web app:
 | Platform | `WEB` |
 
 Preview Deployment で本番相当の確認を行う場合は、Preview Environment Variables にも同じ project または検証用 project の値を設定する。
+
+現行の `src/lib/firebase/client.ts` が必須として検証するのは `apiKey`、`authDomain`、`projectId`、`appId` の4項目。`NEXT_PUBLIC_*` はビルド時にも必要になる。`measurementId` の設定項目はあるがFirebase Analyticsは初期化していない（Vercel Analyticsはlayoutで利用）。Emulatorへの接続設定も現行ソースにはない。
 
 ## 6. No.6 へ進む前の確認事項
 

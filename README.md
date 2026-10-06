@@ -1,154 +1,138 @@
 # tennis-organizing-app
 
-テニス練習会向けのメンバー管理と対戦表作成アプリです。
+テニス練習会向けのメンバー管理とダブルス／シングルス対戦表作成アプリです。
 
-公開URL: [https://tennis-organizing-app.bamboosato.com/](https://tennis-organizing-app.bamboosato.com/)  
-既存の Vercel URL: [https://tennis-organizing-app.vercel.app/](https://tennis-organizing-app.vercel.app/)  
+公開URL: [tennis-organizing-app.bamboosato.com](https://tennis-organizing-app.bamboosato.com/)
 
-## Current Artifacts
+既存の Vercel URL: [tennis-organizing-app.vercel.app](https://tennis-organizing-app.vercel.app/)
 
-- [要件分析・設計方針](docs/requirements-design.md)
-- [ver1.00 リリース対象棚卸し](docs/release-v1.00-scope.md)
+現行 package version: `1.1.0`（画面フッターは `v1.1.0`）。以下はリポジトリの現行実装に基づく説明です。
+
+## 実装済み機能
+
+| 機能 | 内容 |
+| --- | --- |
+| 認証 | Firebaseのメール／パスワード認証、新規ID登録、パスワード再設定、Guest（匿名）ログイン、ログアウト |
+| メンバー管理 | ユーザー別にニックネーム・氏名・性別・備考を保存。登録・編集・非表示、登録順（新しい順）／アイウエオ順の切替。activeメンバーは画面上最大99人 |
+| 参加者選択 | 登録メンバーと当日ゲストを組み合わせて最大30人。仮選択を `OK` で確定し、`キャンセル` で破棄 |
+| ダブルス | 4–30人、通常／同性対決優先／混合対決優先。1コート4人 |
+| シングルス | 2–30人、1対1の対戦。1コート2人。対戦モード選択はなく、性別は表示用に保持 |
+| 条件入力 | 開催名、コート1–8面、実施1–20回。人数に対してコート数が多い場合は減算確認 |
+| 対戦結果 | ラウンド別のコート・対戦者・休憩者・seed、完了トースト。参加者名は `佐藤 F`／`ゲスト01 M` のように性別記号付きで表示 |
+| PDF | 両形式・両ログイン方式に対応。日本語フォント、A4縦、最大2コート横並び、休憩表示、ページ分割 |
+| ナビゲーション | URL別画面、PCのタブ・対戦表メニュー、スマホの全画面メニュー、アカウントモーダル |
+| PWA | Web App Manifest、productionでのService Worker登録、静的アセットキャッシュ、standalone起動時のスプラッシュ |
+
+対戦組合せは、サーバー側の `/api/matchups/generate` を経由して `tennis-matchup-app` APIで生成します。`MATCHUP_API_KEY` はブラウザーに公開しません。
+
+### 画面と利用手順
+
+| URL | 内容 | Guestログイン |
+| --- | --- | --- |
+| `/` | アプリ説明と各機能へのリンク | 利用可 |
+| `/members` | メンバー登録・編集・一覧・非表示 | 利用不可 |
+| `/matchups/doubles` | ダブルスの条件入力・結果・PDF | 利用可 |
+| `/matchups/singles` | シングルスの条件入力・結果・PDF | 利用可 |
+
+未ログインでは各URLにログイン画面を表示します。メールログイン後はそのURLの画面を表示します。新規ID登録後はログイン画面へ戻り、改めてログインします。
+
+1. メール／パスワード、または `Guestログイン` で開始します。
+2. 登録ユーザーは必要に応じてメンバーを登録します。
+3. ダブルスまたはシングルス画面で `メンバー選択` を開き、登録メンバーとゲスト人数を選んで `OK` を押します。Guestログインでは女性人数・男性人数を入力します。
+4. 開催名・コート数・実施回数を設定し、ダブルスでは対戦モードも選びます。
+5. `対戦表作成` を押します。コート減算確認が出た場合は `OK` で生成します。
+6. 結果から `PDF作成` で保存します。
+
+Guestログインと、登録ユーザーが追加する当日ゲストは別の扱いです。当日ゲストはメンバーとして保存せず、女性から先に `ゲスト01` から連番にします。
+
+### 保存と制約
+
+- メンバーはCloud Firestoreの `users/{uid}/members/{memberId}` に保存します。ローカル開発でも、設定したFirebase projectに書き込みます。
+- 非表示は `inactive` への更新です。物理削除と復元UIはありません。99人上限はクライアントで検証し、Firestore Rulesは件数上限を強制しません。
+- ダブルスとシングルスの条件・結果は別々にメモリー保持し、アプリ内の画面移動で維持します。再読み込みでは初期化し、ログアウト操作でもリセットします。結果の履歴保存・共有URLはありません。
+- PWAは静的アセットのみをキャッシュします。画面HTML・API・FirestoreデータをService Workerでキャッシュせず、完全オフラインでの利用は提供しません。独自のインストールバナー・Push通知・Background Syncはありません。
+
+## 文書
+
+- [要件分析・現行設計](docs/requirements-design.md)
+- [フローティングナビゲーション・URL別画面設計](docs/floating-navigation-ui-design.md)
+- [PWA Service Worker・スプラッシュ設計](docs/pwa-service-worker-design.md)
+- [実装・文書の整合確認記録](docs/implementation-documentation-audit.md)
+- [ver1.00 リリース対象棚卸し（当時の記録）](docs/release-v1.00-scope.md)
 - [Firebase 本番設定チェックリスト](docs/firebase-production-setup.md)
 - [Vercel 本番設定チェックリスト](docs/vercel-production-setup.md)
-- [PWA Service Worker 静的アセットキャッシュ設計](docs/pwa-service-worker-design.md)
 - [PDFレイアウトサンプル 2コート](docs/pdf-layout-portrait-2-courts.png)
 - [PDFレイアウトサンプル 3コート](docs/pdf-layout-portrait-3-courts.png)
 
-## Setup Notes
+PDFサンプルはダブルスの設計例です。現行の性別記号やシングルス表示は、現行設計とPDFモデルを参照してください。
 
-開発時は `.env.local.example` を参考に `.env.local` を作成します。
-`.env.local` は秘密情報を含むため Git 管理対象外です。
+## 開発環境
 
-主な外部サービス:
+Next.js App Router、React、TypeScript、Firebase Client SDK、jsPDF／jspdf-autotableを使用します。Node.jsはCIと同じ `24.x` を基準にします。
 
-- Firebase Authentication
-- Cloud Firestore
-- `tennis-matchup-app` API
-
-## Development
+`.env.local.example` を参考に `.env.local` を作成します。`.env.local` は秘密情報を含むためGit管理対象外です。
 
 ```powershell
-npm install
+npm ci
 npm run dev
 ```
 
-ローカルURL:
+ローカルURLは `http://localhost:3000` です。必要な外部サービスはFirebase Authentication、Cloud Firestore、`tennis-matchup-app` APIです。
 
-```txt
-http://localhost:3000
-```
+### 環境変数
 
-検証:
+| 変数 | 用途 | 必須条件 |
+| --- | --- | --- |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase Web SDK | 必須 |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase Authentication | 必須 |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firestore project | 必須。Rules反映先と一致させる |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase Web app | 必須 |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Firebase config | Web app設定に合わせる |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase config | Web app設定に合わせる |
+| `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` | Firebase config | Web app設定に合わせる。Firebase Analyticsの初期化はなし |
+| `MATCHUP_API_BASE_URL` | 上流APIのbase URL | 未設定時は `https://tennis-matchup-app.vercel.app` |
+| `MATCHUP_API_KEY` | 上流APIのBearer認証 | 対戦表生成時に必須。サーバー側のみ |
+| `VERCEL_AUTOMATION_BYPASS_SECRET` | Protected Preview向けの設定例 | 通常不要。現行proxyはこの値を読み取りません |
+
+Firebase Client SDKの必須4変数はビルド時にも必要です。`NEXT_PUBLIC_*` はブラウザー用設定です。Firebase Admin SDKは本アプリでは使用しません。`tennis-matchup-app` 側の管理・APIキー設定は別サービスで管理します。
+
+`MATCHUP_API_KEY` は運用方針上ローカルと本番で共通とし、分離・ローテーションが必要な場合に変更します。
+
+### 検証
 
 ```powershell
 npm run lint
 npx --no-install tsc --noEmit
 npm test
 npm run build
-npm run test:e2e
+npm run test:e2e -- --workers=1
 npm audit
 ```
 
-`npm run test:e2e` は本番ビルド後の `next start` に対して Playwright を実行します。ローカルで単独実行する場合は、先に `npm run build` を実行してください。
+- `npm test`: VitestでAPI proxy、ゲスト採番・内訳、参加者表示・Summary、PDFモデルを検証します。
+- `npm run test:e2e`: PlaywrightのChromiumでmanifest、Service Worker配信・静的キャッシュ／API非キャッシュ、PWAスプラッシュ、アイコンURLを検証します。認証・メンバー管理・生成操作全体のE2Eではありません。
+- E2Eは本番ビルド後の `next start` をポート `3001` で起動します。先に `npm run build` を実行してください。`reuseExistingServer: true` のため、既存サーバーを再利用する場合は最新ビルドか確認します。実行は同一端末で直列にします。
+- E2Eのサーバー設定はFirebaseのダミー値を指定しますが、`NEXT_PUBLIC_*` はビルド時に埋め込まれます。認証・Firestoreの検証用環境やEmulator接続は別途必要です。
+- [GitHub Actions](.github/workflows/ci.yml) は `main` へのpush・PRでNode.js 24を使い、lint、型検査、Vitest、build、Chromium E2E、auditを実行します。
+
+変更の影響に応じてE2Eを未実施／対象ケースのみ／クロスブラウザー／全件から選び、選定理由と未実施範囲を記録します。主要な手動確認観点は[要件文書](docs/requirements-design.md#7-テスト設計)を参照してください。
 
 ## Firebase Rules
 
-メンバー登録はローカル画面からでも Cloud Firestore へ保存します。
-Firebase Console または Firebase CLI で `firestore.rules` を `tennis-organizing-app` に反映してください。
+Firebase AuthenticationのEmail/Password・Anonymous providerを有効化し、Cloud Firestoreを準備します。[Firebase設定文書](docs/firebase-production-setup.md)を参照してください。
 
-Firebase CLI を使う場合:
+Rulesは本人のpassword providerにread/create/updateを許可し、Guestと物理deleteを許可しません。`.firebaserc` のdefault projectは `tennis-organizing-app` です。反映前に対象projectを確認します。
 
 ```powershell
 firebase login
 firebase use tennis-organizing-app
-firebase deploy --only firestore:rules
+firebase deploy --only firestore:rules --project tennis-organizing-app
 ```
 
-このリポジトリでは `.firebaserc` で default project を `tennis-organizing-app` に固定しています。本番反映前は、`firebase use` または `firebase projects:list` で対象 project を確認してください。
+## デプロイとバージョン
 
-## Deploy
-
-Vercel で公開します。運用は `tennis-matchup-app` と同様に、GitHub 連携による自動デプロイを前提とします。
-
-- GitHub: `main` ブランチ運用
-- Vercel: GitHub リポジトリ連携で自動デプロイ
-- Production Branch: `main`
-- Production Deployment: `main` への merge または push
-- `tennis-matchup-app` と同様に、ver1.00 リリース運用では Preview Deployment を使用しない
-- リリース表示名: `ver1.00`
-- npm package version: `1.0.0`
-
-### 初回デプロイの流れ
-
-1. `codex/release-v1.00` ブランチで ver1.00 対象範囲、version、README を確定する。
-2. Firebase 本番 project で Email/Password 認証と Anonymous 認証を有効化する。
-3. Cloud Firestore を有効化し、`firestore.rules` を本番 project へ反映する。
-4. `tennis-matchup-app` のローカル/本番共通 API キーを確認し、scope、rate limit、有効状態を確認する。
-5. Vercel で GitHub リポジトリ `Bamboosato/tennis-organizing-app` を Import する。
-6. Framework Preset は `Next.js` のまま Deploy 設定する。
-7. Vercel Project の Production Environment Variables を設定する。
-8. Pull Request を `main` に merge し、Production Deployment を作成する。
-9. 本番 URL でスモーク確認を実施する。
-10. 本番確認後に release tag `v1.00` を作成する。
-
-### Vercel Environment Variables
-
-`tennis-organizing-app` の Vercel Project には、Production 用に以下を設定します。ver1.00 では Preview Deployment を使用しないため、Preview 用の API 環境変数は必須にしません。
-
-| 変数 | 用途 | 備考 |
-| --- | --- | --- |
-| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase Web SDK | Firebase Console の Web app 設定値 |
-| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase Authentication | Firebase Console の Web app 設定値 |
-| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase project | Firestore Rules の project と一致させる |
-| `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase Web app | Firebase Console の Web app 設定値 |
-| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Firebase config | Firebase Console の Web app 設定値 |
-| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase config | Firebase Console の Web app 設定値 |
-| `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` | Firebase config | 未使用でも Firebase config として合わせる |
-| `MATCHUP_API_BASE_URL` | `tennis-matchup-app` API base URL | 通常は `https://tennis-matchup-app.vercel.app` |
-| `MATCHUP_API_KEY` | 対戦表 API 認証 | ローカルと本番で共通の `tennis-matchup-app` API キー |
-| `VERCEL_AUTOMATION_BYPASS_SECRET` | Protected Preview 呼び出し | 必要な場合のみ |
-
-`MATCHUP_API_KEY` はサーバー側 route だけで使用し、ブラウザへ公開しません。
-
-`tennis-matchup-app` 側では、管理画面ログイン、API キー管理、API 認証のために `FIREBASE_PROJECT_ID`、`FIREBASE_CLIENT_EMAIL`、`FIREBASE_PRIVATE_KEY`、`ADMIN_PASSWORD_HASH`、`ADMIN_SESSION_SECRET` を維持します。`tennis-organizing-app` は、ローカルと本番で共通の API キーを `MATCHUP_API_KEY` として利用します。キーを分けるのは、漏えい対応やrate limit分離などで明示的にローテーションする場合だけです。
-
-### リリース前確認
-
-```powershell
-npm run lint
-npx --no-install tsc --noEmit
-npm test
-npm run build
-npm run test:e2e
-npm audit
-```
-
-主な手動スモーク:
-
-- メール/パスワードで新規登録後、ログイン画面へ戻り、明示ログインできる
-- Guest ログイン後、人数手入力で対戦表を作成できる
-- メンバー登録、編集、非表示ができる
-- 登録メンバーから 4-30 人を選択し、通常 / 同性対決優先 / 混合対決優先で対戦表を作成できる
-- 過剰なコート数で確認ダイアログが表示され、OK で使用可能面数に減算される
-- ログインユーザーと Guest の両方で PDF を作成できる
-
-## Versioning
-
-- アプリ version は `package.json` で管理します。
-- ver1.00 の package version は `1.0.0` です。
-- ver1.00 の release branch は `codex/release-v1.00` です。
-- 本番確認後の release tag は `v1.00` とします。
-- 開発ブランチ名と package version は別で扱います。
-
-## Implemented Scope
-
-- Next.js App Router の初期構成
-- Firebase Client SDK 初期化
-- メール/パスワード認証
-- 新規ID登録後にログイン画面へ戻るパスワード設定フロー
-- Guestログイン
-- `tennis-matchup-app` に近い条件入力型ホーム画面
-- ホーム画面からのメンバー登録画面遷移
-- Firestore `users/{uid}/members/{memberId}` へのメンバー登録、編集、非表示
-- 登録順 / アイウエオ順の表示切替
+- VercelはGitHubリポジトリと連携し、Production Branchの `main` へのmerge／pushで本番デプロイする運用です。
+- 設定手順・初回設定記録は[Vercel設定文書](docs/vercel-production-setup.md)を参照してください。記録済みの環境状態は作業時に再確認します。
+- Previewを使う場合は必要な環境変数を別途設定します。ver1.00初回リリースではPreviewを使用しませんでした。
+- versionは `package.json` を正とし、フッターもその値を参照します。現行は `1.1.0` です。
+- `ver1.00`、package version `1.0.0`、release branch `codex/release-v1.00`、tag名 `v1.00` は初回リリースの方針です。現行の固定値にはしません。

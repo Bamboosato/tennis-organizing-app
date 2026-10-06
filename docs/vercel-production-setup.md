@@ -2,6 +2,8 @@
 
 作成日: 2026-05-14
 
+文書区分: 初回本番設定手順と2026-05の確認記録。2026-10-06の文書整合確認ではVercelのproject・ドメイン・環境変数を再確認していない。「設定済み」「完了」は当時の記録であり、利用時に再確認する。現行versionは `package.json`、機能は[README](../README.md)を正とする。
+
 ## 1. 目的
 
 ver1.00 本番展開に必要な Vercel 側設定を固定する。
@@ -55,6 +57,8 @@ vercel env ls production --format=json
 
 `MATCHUP_API_BASE_URL` と `MATCHUP_API_KEY` は、ローカル `.env.local` の値を利用して Production へ追加済み。値は表示しない。
 
+現行ソースで必須のFirebase公開設定4項目はビルド時に埋め込まれるため、変更後は再ビルド・再デプロイが必要。`MATCHUP_API_KEY` はサーバー側proxyで利用し、未設定時の生成は500を返す。詳細は[READMEの環境変数](../README.md#環境変数)を参照する。
+
 ## 4. Preview Environment Variables
 
 ver1.00 は `tennis-matchup-app` と同様に Preview Deployment を使用しない方針とする。したがって Preview Environment Variables の API 系2変数はリリース完了条件に含めない。
@@ -80,6 +84,8 @@ vercel env ls preview --format=json
 ```
 
 Preview を将来使う方針に変更する場合のみ、Vercel Dashboard または CLI で `MATCHUP_API_BASE_URL` と `MATCHUP_API_KEY` を Preview に追加する。今回の ver1.00 リリースでは Production Deployment のみを確認対象とし、Production 側の必要変数は設定済み。
+
+`.env.local.example` の `VERCEL_AUTOMATION_BYPASS_SECRET` は設定例として存在するが、現行proxyは読み取らず、上流fetchに保護バイパス用ヘッダーを付けない。変数を設定するだけでProtected Previewを呼び出せる仕様ではない。
 
 ## 5. No.8 / No.9 完了判定
 

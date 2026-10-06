@@ -2,6 +2,10 @@
 
 作成日: 2026-05-14
 
+文書区分: ver1.00棚卸し・初回品質ゲートの履歴。
+
+本書の機能範囲、未実装判定、実装パス、`test` script未定義の記述は作成当時の記録であり、現行実装の判定には使用しない。2026-10-06確認の現行package versionは `1.1.0`。URL別画面・シングルス・PWA・Vitest／Playwright・CIは現行実装に含まれる。現行仕様は[README](../README.md)、[要件・設計](requirements-design.md)、[整合確認記録](implementation-documentation-audit.md)を参照する。認証・フォームの現在の実装位置は `src/app/AppClientShell.tsx`。
+
 ## 1. 目的
 
 本書は、ver1.00 として本番環境（Vercel）へ展開する対象を、現状ローカルで実装されている機能から抽出して固定する。
