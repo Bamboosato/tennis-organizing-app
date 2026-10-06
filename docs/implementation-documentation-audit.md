@@ -59,11 +59,11 @@ GitHubリポジトリ内の文書が対象。本番のFirebase／Vercel設定、
 
 ### 4.1 GitHub上の検証結果
 
-[ドラフトPR #21](https://github.com/Bamboosato/tennis-organizing-app/pull/21) の文書修正コミット `922f4c8` に対する [CI実行](https://github.com/Bamboosato/tennis-organizing-app/actions/runs/37401153193) は、lint・型検査・Vitest・build・Chromium E2Eまで成功し、最後の `Audit dependencies` で失敗した。Vercel Previewのデプロイチェックは成功。
+[PR #21](https://github.com/Bamboosato/tennis-organizing-app/pull/21) の文書修正コミット `922f4c8` に対する [CI実行](https://github.com/Bamboosato/tennis-organizing-app/actions/runs/37401153193) は、lint・型検査・Vitest・build・Chromium E2Eまで成功し、最後の `Audit dependencies` で失敗した。Vercel Previewのデプロイチェックは成功。
 
 `npm audit` の検出は24件（low 1、moderate 7、high 14、critical 2）。`package.json` と `package-lock.json` は確認開始時のmainと同一であり、今回の文書変更による依存追加・更新ではない。到達可能性や各修正方法の評価は今回の対象外。依存更新を行わず、失敗を記録する。過去のver1.00記録にある `found 0 vulnerabilities` は当時の結果であり、現在の監査結果には使用しない。
 
-CIのChromium E2E成功は既存のPWAケースの範囲に限る。ローカルE2E未実施、および認証・メンバー管理・対戦表生成の実操作／クロスブラウザー／実機／本番設定の未確認範囲は変わらない。mainへのマージ・本番デプロイは実施していない。
+CIのChromium E2E成功は既存のPWAケースの範囲に限る。ローカルE2E未実施、および認証・メンバー管理・対戦表生成の実操作／クロスブラウザー／実機／本番設定の未確認範囲は変わらない。本節はPR段階の検証記録であり、マージ・本番デプロイ後の確認結果ではない。マージ状態はPR、デプロイ状態はVercelの履歴を参照する。
 
 ## 5. 文書更新時の再発防止
 
