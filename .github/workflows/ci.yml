@@ -11,7 +11,8 @@ on:
 jobs:
   verify:
     name: Verify
-    runs-on: ubuntu-latest
+    # Playwright 1.60 supports Ubuntu 24.04; avoid ubuntu-latest OS drift.
+    runs-on: ubuntu-24.04
     env:
       NEXT_PUBLIC_FIREBASE_API_KEY: ci-api-key
       NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ci.firebaseapp.com
